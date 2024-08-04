@@ -50,10 +50,15 @@ def home(request):
     page_number = request.GET.get('page')
     papers, items = get_paginated_reviews(papers, page_number)
 
+    get_params = request.GET.copy()
+    if 'page' in get_params:
+        del get_params['page']
+
     for index, paper in enumerate(papers):
         paper.index = index + 1
     return render(request, 'core/home.html', {
         'query': query,
+        'get_params': get_params,
         'papers': papers,
         'items': items,
     })
