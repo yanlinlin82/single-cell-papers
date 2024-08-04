@@ -45,7 +45,7 @@ def home(request):
             Q(data_type__icontains=query) |
             Q(sample_size__icontains=query))
 
-    papers = papers.order_by('-created')
+    papers = papers.order_by('-source', '-pub_date_dt')
 
     page_number = request.GET.get('page')
     papers, items = get_paginated_reviews(papers, page_number)

@@ -9,6 +9,7 @@ class Paper(models.Model):
     title = models.CharField(max_length=512)
     journal = models.CharField(max_length=512, null=True, blank=True, default='')
     pub_date = models.CharField(max_length=32, null=True, blank=True, default='')
+    pub_date_dt = models.DateField(null=True, blank=True, default=None)
     pub_year = models.IntegerField(null=True, blank=True, default=None)
     doi = models.CharField(max_length=128, null=True, blank=True, default='')
     pmid = models.CharField(max_length=32, null=True, blank=True, default='')
