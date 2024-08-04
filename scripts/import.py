@@ -1,9 +1,9 @@
 import os
 import sys
-import django
 import re
 import gzip
 import json
+import django
 
 sys.path.append('.')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')

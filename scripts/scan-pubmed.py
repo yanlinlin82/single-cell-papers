@@ -8,6 +8,13 @@ import openai
 import dotenv
 import json
 import httpx
+import django
+
+sys.path.append('.')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
+django.setup()
+
+from core.models import Paper
 
 class PubmedArticle:
     def __init__(self, xml_node):
@@ -258,6 +265,12 @@ def process(xml_gz_file):
             article_match(article, 'spatial transcriptomics'):
             cnt += 1
             print(f"Processing ({cnt}): (PMID: {article.pmid}) {article.title}")
+
+            paper = Paper.objects.filter(pmid=article.pmid)
+            if paper:
+                if paper[0].source is not None and xml_source_id < paper[0].source:
+                    print("  skipped because not latest source")
+                    continue
 
             data = {
                 "doi": article.doi,
