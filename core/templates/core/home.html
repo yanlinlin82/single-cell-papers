@@ -63,6 +63,30 @@
   });
 </script>
 
+<div class="p-3">
+  <form class="col-md-8 mx-auto mt-3" style="max-width:500px">
+    <div class="row">
+      <label class="form-label mb-3" for="q">文献搜索：</label>
+    </div>
+    <div class="input-group w-auto mb-3">
+      <input type="text" id="q" name="q" class="form-control border-dark w-50" placeholder="请输入关键词" value="{{ query }}" required>
+      <button type="submit" class="btn btn-primary">搜索</button>
+    </div>
+    <script>
+      $('document').ready(function() {
+        t = $('#q');
+        t.focus()
+        l = t.val().length;
+        t[0].setSelectionRange(0, l);
+      })
+    </script>
+  </form>
+</div>
+
+<div class="my-3 text-start">
+  当前共找到 {{ papers.paginator.count }} 篇文献{% if papers.paginator.num_pages > 1 %}，本页显示第 {{ papers.start_index }} - {{ papers.end_index }} 篇{% endif %}。
+</div>
+
 {% include "core/includes/paginator.html" %}
 
 <table class="table table-striped border" style="max-width:100%;">
