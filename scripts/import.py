@@ -33,13 +33,15 @@ if __name__ == '__main__':
             #print("====================================")
             #print(f"pmid: {pmid}")
 
+            create_new = False
+            any_changed = False
             paper_list = Paper.objects.filter(pmid=pmid)
             if paper_list:
                 paper = paper_list[0]
-                print(f"  update existed paper: {paper}")
             else:
                 paper = Paper(pmid=pmid)
-                print(f"  add new paper: {pmid}")
+                create_new = True
+                any_changed = True
 
             with gzip.open(info_file, 'rt') as f:
                 data = json.load(f)
@@ -47,11 +49,21 @@ if __name__ == '__main__':
                 if data['pmid'] != pmid:
                     print(f"Skipped because pmid mismatch: {data['pmid']} != {pmid}")
                     continue
-                paper.title = data['title']
-                paper.journal = data['journal']
-                paper.pub_date = data['pub_date']
-                paper.pub_year = data['pub_year']
-                paper.doi = data['doi']
+                if paper.title != data['title']:
+                    paper.title = data['title']
+                    any_changed = True
+                if paper.journal != data['journal']:
+                    paper.journal = data['journal']
+                    any_changed = True
+                if paper.pub_date != data['pub_date']:
+                    paper.pub_date = data['pub_date']
+                    any_changed = True
+                if paper.pub_year != data['pub_year']:
+                    paper.pub_year = data['pub_year']
+                    any_changed = True
+                if paper.doi != data['doi']:
+                    paper.doi = data['doi']
+                    any_changed = True
             
             with gzip.open(answer_file, 'rt') as f:
                 try:
@@ -65,17 +77,47 @@ if __name__ == '__main__':
                     print(f"Skipped because JSONDecodeError: {answer_file}")
                     continue
                 #print(json.dumps(data, indent=4))
-                paper.article_type = data['content']['article_type']
-                paper.description = data['content']['description']
-                paper.novelty = data['content']['novelty']
-                paper.limitation = data['content']['limitation']
-                paper.research_goal = data['content']['research_goal']
-                paper.research_objects = data['content']['research_objects']
-                paper.field_category = data['content']['field_category']
-                paper.disease_category = data['content']['disease_category']
-                paper.technique = data['content']['technique']
-                paper.model_type = data['content']['model_type']
-                paper.data_type = data['content']['data_type']
-                paper.sample_size = data['content']['sample_size']
+                content = data['content']
+                if paper.article_type != content['article_type']:
+                    paper.article_type = content['article_type']
+                    any_changed = True
+                if paper.description != content['description']:
+                    paper.description = content['description']
+                    any_changed = True
+                if paper.novelty != content['novelty']:
+                    paper.novelty = content['novelty']
+                    any_changed = True
+                if paper.limitation != content['limitation']:
+                    paper.limitation = content['limitation']
+                    any_changed = True
+                if paper.research_goal != content['research_goal']:
+                    paper.research_goal = content['research_goal']
+                    any_changed = True
+                if paper.research_objects != content['research_objects']:
+                    paper.research_objects = content['research_objects']
+                    any_changed = True
+                if paper.field_category != content['field_category']:
+                    paper.field_category = content['field_category']
+                    any_changed = True
+                if paper.disease_category != content['disease_category']:
+                    paper.disease_category = content['disease_category']
+                    any_changed = True
+                if paper.technique != content['technique']:
+                    paper.technique = content['technique']
+                    any_changed = True
+                if paper.model_type != content['model_type']:
+                    paper.model_type = content['model_type']
+                    any_changed = True
+                if paper.data_type != content['data_type']:
+                    paper.data_type = content['data_type']
+                    any_changed = True
+                if paper.sample_size != content['sample_size']:
+                    paper.sample_size = content['sample_size']
+                    any_changed = True
 
-            paper.save()
+            if any_changed:
+                if create_new:
+                    print(f"  create new paper: {paper}")
+                else:
+                    print(f"  update existed paper: {paper}")
+                paper.save()
