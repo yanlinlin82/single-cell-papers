@@ -8,26 +8,7 @@
 <p class="mt-3">本数据库中的数据，是通过自动收集、整理、解析并汇总最新发表的科研文献而获得，供了解相关领域前沿研究进展之用。除数据会持续更新外，相关功能也将逐步补充完善中。</p>
 
 {% include "core/includes/intro.html" %}
-
-<div class="p-3">
-  <form class="col-md-8 mx-auto mt-3" style="max-width:500px">
-    <div class="row">
-      <label class="form-label mb-3" for="q">文献搜索：</label>
-    </div>
-    <div class="input-group w-auto mb-3">
-      <input type="text" id="q" name="q" class="form-control border-dark w-50" placeholder="请输入关键词" value="{{ query }}">
-      <button type="submit" class="btn btn-primary">搜索</button>
-    </div>
-    <script>
-      $('document').ready(function() {
-        t = $('#q');
-        t.focus()
-        l = t.val().length;
-        t[0].setSelectionRange(0, l);
-      })
-    </script>
-  </form>
-</div>
+{% include "core/includes/search.html" %}
 
 <div class="my-3 text-start">
   当前共找到 {{ papers.paginator.count }} 篇文献{% if papers.paginator.num_pages > 1 %}，本页显示第 {{ papers.start_index }} - {{ papers.end_index }} 篇{% endif %}。

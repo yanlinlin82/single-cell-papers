@@ -1,0 +1,19 @@
+<div class="p-3">
+  <form class="col-md-8 mx-auto mt-3" style="max-width:500px">
+    <div class="row">
+      <label class="form-label mb-3" for="q">文献搜索：</label>
+    </div>
+    <div class="input-group w-auto mb-3">
+      <input type="text" id="q" name="q" class="form-control border-dark w-50" placeholder="请输入关键词" value="{{ query }}">
+      <button type="submit" class="btn btn-primary">搜索</button>
+    </div>
+    <script>
+      $('document').ready(function() {
+        t = $('#q');
+        t.focus()
+        l = t.val().length;
+        t[0].setSelectionRange(0, l);
+      })
+    </script>
+  </form>
+</div>
