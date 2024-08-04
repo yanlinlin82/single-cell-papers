@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-onep5@r39_e*wsmz)8j#t8aq_fuxkaa3b_lk-g=fh+2knuociv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [ 'localhost', '127.0.0.1', '[::1]', 'biomed-dl.bioinfo-assist.com' ]
+ALLOWED_HOSTS = [ 'localhost', '127.0.0.1', '[::1]', 'single-cell-papers.bioinfo-assist.com' ]
 
 
 # Application definition
