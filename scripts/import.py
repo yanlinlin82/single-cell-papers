@@ -21,25 +21,31 @@ if __name__ == '__main__':
         for file in files:
             if not re.match(r'.*\.2-info.json.gz$', file):
                 continue
+
+            source = os.path.basename(root)
+            pmid = file.split('.')[0]
+
             info_file = os.path.join(root, file)
-            answer_file = os.path.join(root, f'{file.split(".")[0]}.4-chat-answer.json.gz')
+            answer_file = os.path.join(root, f'{pmid}.4-chat-answer.json.gz')
             if not os.path.exists(answer_file):
                 print(f"Skipped because answer file not found: {answer_file}")
                 continue
 
-            pmid = file.split('.')[0]
-
-            print(f"importing {pmid} ('{info_file}', '{answer_file}') ...")
-            #print("====================================")
-            #print(f"pmid: {pmid}")
+            print(f"importing {source} {pmid} ('{info_file}', '{answer_file}') ...")
 
             create_new = False
             any_changed = False
             paper_list = Paper.objects.filter(pmid=pmid)
             if paper_list:
                 paper = paper_list[0]
+                if paper.source is not None and source < paper.source:
+                    print("  skipped because not latest source")
+                    continue
+                if paper.source != source:
+                    paper.source = source
+                    any_changed = True
             else:
-                paper = Paper(pmid=pmid)
+                paper = Paper(pmid=pmid, source=source)
                 create_new = True
                 any_changed = True
 
@@ -64,7 +70,7 @@ if __name__ == '__main__':
                 if paper.doi != data['doi']:
                     paper.doi = data['doi']
                     any_changed = True
-            
+
             with gzip.open(answer_file, 'rt') as f:
                 try:
                     data = json.load(f)

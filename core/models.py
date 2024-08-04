@@ -4,6 +4,8 @@ class Paper(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
+    source = models.CharField(max_length=32, null=True, blank=True, default='')
+
     title = models.CharField(max_length=512)
     journal = models.CharField(max_length=512, null=True, blank=True, default='')
     pub_date = models.CharField(max_length=32, null=True, blank=True, default='')
