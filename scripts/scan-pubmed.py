@@ -252,7 +252,10 @@ def process(xml_gz_file):
             continue
         if article.abstract is None or article.abstract == '':
             continue
-        if article_match(article, 'deep learning'):
+        if article_match(article, 'single-cell sequencing') or \
+            article_match(article, 'single-cell transcriptomics') or \
+            article_match(article, 'single-cell RNA-seq') or \
+            article_match(article, 'spatial transcriptomics'):
             cnt += 1
             print(f"Processing ({cnt}): (PMID: {article.pmid}) {article.title}")
 

@@ -6,7 +6,7 @@ import gzip
 import json
 
 sys.path.append('.')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'dlbm.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 django.setup()
 
 from core.models import Paper
