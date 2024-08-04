@@ -1,4 +1,19 @@
 {% load static %}
+
+{% block custom_style%}
+<style>
+  .custom-div {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    z-index: 1000;
+    width: 200px;
+  }
+</style>
+{% endblock %}
+
 <p class="mt-1">如有任何建议，或期望在相关方向上合作，欢迎联系我：linlin.yan (AT) bioinfo.app 或 微信 <a href="javascript:void(0);" id="toggleLink">yanlinlin82</a>。</p>
 <div id="customDiv" class="custom-div">
   <div class="text=center"><img src="{% static "images/qrcode.jpg" %}" class="img-fluid" alt="Sample Image"></div>
