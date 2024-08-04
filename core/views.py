@@ -25,7 +25,7 @@ def get_paginated_reviews(reviews, page_number):
 def home(request):
     papers = Paper.objects.all()
 
-    query = request.GET.get('q')
+    query = request.GET.get('q') or ''
     if query:
         papers = Paper.objects.filter(
             Q(title__icontains=query) |
