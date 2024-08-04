@@ -11,22 +11,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 django.setup()
 
 from core.models import Paper
-
-def parse_date(raw_date):
-    try:
-        # Parse the date using multiple formats
-        if re.match(r'\d{4}-[a-zA-Z]{3}-\d{2}', raw_date):
-            return datetime.strptime(raw_date, '%Y-%b-%d').date()
-        elif re.match(r'\d{4}-[a-zA-Z]{3}', raw_date):
-            return datetime.strptime(raw_date, '%Y-%b').date().replace(day=1)
-        elif re.match(r'\d{4}', raw_date):
-            return datetime.strptime(raw_date, '%Y').date().replace(month=1, day=1)
-        elif re.match(r'\d{4}-\d{2}-\d{2}', raw_date):
-            return datetime.strptime(raw_date, '%Y-%m-%d').date()
-        else:
-            return None
-    except ValueError:
-        return None
+from core.paper import parse_date
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
