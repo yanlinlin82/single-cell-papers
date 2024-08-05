@@ -33,6 +33,7 @@ def correct_month(month):
         "janvier": "jan",      # 法语
         "gen"    : "jan",      # 意大利语
         "gennaio": "gen",      # 意大利语
+        "jna"    : "jan",      # 法语
 
         # 二月
         "feb"      : "feb",    # 英语
@@ -95,6 +96,7 @@ def correct_month(month):
         "septiembre": "sep",   # 西班牙语
         "septembre" : "sep",   # 法语
         "settembre" : "sep",   # 意大利语
+        "seo"       : "sep",   # 法语
 
         # 十月
         "oct"    : "oct",      # 英语
@@ -221,16 +223,7 @@ def parse_date(raw_text):
             match = re.match(pattern, raw_text)
             year, month = match.groups()
             month = correct_month(month)
-            try:
-                return datetime.strptime(f"{year} {month} 01", '%Y %b %d').date()
-            except ValueError:
-                if re.match(r'\d{4}\s', raw_text):
-                    # e.g. 2022 Special Issue On Puerto Rico
-                    year_only = raw_text[:4]
-                    return datetime.strptime(year_only, '%Y').date().replace(month=1, day=1)
-                else:
-                    print(f"Failed to parse date for unexpected format: '{raw_text}'")
-                    return None
+            return datetime.strptime(f"{year} {month} 01", '%Y %b %d').date()
         elif re.match(r'\d{4}\s+[0-9]+(st|nd|rd|th)?\s+[a-zA-Z]+', raw_text):
             # e.g. 2017 5th Jan 2017
             #      2017 5th January 2017
@@ -248,5 +241,10 @@ def parse_date(raw_text):
             print(f"Failed to parse date for unexpected format: '{raw_text}'")
             return None
     except ValueError:
-        print(f"Failed to parse date: '{raw_text}'")
-        return None
+        if re.match(r'\d{4}\s', raw_text):
+            # e.g. 2022 Special Issue On Puerto Rico
+            year_only = raw_text[:4]
+            return datetime.strptime(year_only, '%Y').date().replace(month=1, day=1)
+        else:
+            print(f"Failed to parse date: '{raw_text}'")
+            return None
