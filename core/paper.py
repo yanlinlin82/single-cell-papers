@@ -133,7 +133,7 @@ def parse_date(raw_text):
             # e.g. 1992 Fall-Winter
             #      1992 Fall - Winter
             pattern = r'(\d{4})\s+(Spring|Summer|Fall|Autumn|Winter)\s*[\-/]\s*(Spring|Summer|Fall|Autumn|Winter)'
-            match = re.match(pattern, raw_text)
+            match = re.match(pattern, raw_text, re.IGNORECASE)
             year, season, _ = match.groups()
             month = season_to_month[season.lower()]
             return datetime.strptime(f"{year}-{month}-01", '%Y-%m-%d').date()
