@@ -74,14 +74,24 @@ def home(request):
     })
 
 def stat(request):
-    year_counts = Counter([i.pub_date_dt.year \
-                           for i in Paper.objects.all().order_by('-pub_date_dt')])
-    sorted_year_counts = sorted(year_counts.items(), key=lambda x: x[0], reverse=True)
-    month_counts = Counter([f"{i.pub_date_dt.year}-{i.pub_date_dt.month:02}" \
-                            for i in Paper.objects.all().order_by('-pub_date_dt')])
-    sorted_month_counts = sorted(month_counts.items(), key=lambda x: x[0], reverse=True)
+    papers = Paper.objects.all().order_by('-pub_date_dt')
+    year_counts = Counter([paper.pub_date_dt.year for paper in papers])
+    month_counts = Counter([f"{paper.pub_date_dt.year}-{paper.pub_date_dt.month:02}" for paper in papers])
 
-    return render(request, 'core/stat.html', {
-        'year_counts': sorted_year_counts,
-        'month_counts': sorted_month_counts,
-    })
+    years = sorted(year_counts.keys(), reverse=True)  # 获取所有年份并按倒序排列
+    months = [f"{i:02d}" for i in range(1, 13)]  # 生成月份列表
+
+    # 构造一个包含所有数据的二级列表
+    data = []
+    for year in years:
+        year_data = {'year': year, 'total': year_counts[year], 'months': []}
+        for month in months:
+            count = month_counts.get(f"{year}-{month}", 0)
+            year_data['months'].append({'month': month, 'count': count})
+        data.append(year_data)
+
+    context = {
+        'data': data,
+        'months': months,
+    }
+    return render(request, 'core/stat.html', context)

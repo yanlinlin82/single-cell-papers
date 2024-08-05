@@ -54,8 +54,8 @@
         <div>{{ paper.title }}</div>
         <div class="mt-2">{{ paper.pub_date }}, {{ paper.journal }}</div>
         <div class="mt-2">
-          {% if paper.doi %}DOI:<a href="https://doi.org/{{ paper.doi }}">{{ paper.doi }}</a>{% endif %}
-          {% if paper.pmid %}PMID:<a href="https://pubmed.ncbi.nlm.nih.gov/{{ paper.pmid }}">{{ paper.pmid }}</a>{% endif %}
+          {% if paper.doi %}DOI:<a href="https://doi.org/{{ paper.doi }}" target="_blank">{{ paper.doi }}</a>{% endif %}
+          {% if paper.pmid %}PMID:<a href="https://pubmed.ncbi.nlm.nih.gov/{{ paper.pmid }}" target="_blank">{{ paper.pmid }}</a>{% endif %}
         </div>
       </td>
       <td>{{ paper.article_type }}</td>
