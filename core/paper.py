@@ -227,7 +227,8 @@ def parse_date(raw_text):
             return datetime.strptime(f"{year} {month} {day}", '%Y %b %d').date()
         elif re.match(r'\d{4}', raw_text):
             # e.g. 2020
-            return datetime.strptime(raw_text, '%Y').date().replace(month=1, day=1)
+            year_only = raw_text[:4]
+            return datetime.strptime(year_only, '%Y').date().replace(month=1, day=1)
         else:
             print(f"Failed to parse date for unexpected format: '{raw_text}'")
             return None
