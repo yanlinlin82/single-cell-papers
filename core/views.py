@@ -1,3 +1,4 @@
+from collections import Counter
 from django.shortcuts import render
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
@@ -45,6 +46,13 @@ def home(request):
             Q(data_type__icontains=query) |
             Q(sample_size__icontains=query))
 
+    pub_year = request.GET.get('pub_year') or ''
+    pub_month = request.GET.get('pub_month') or ''
+    if pub_year:
+        papers = papers.filter(pub_date_dt__year=pub_year)
+        if pub_month:
+            papers = papers.filter(pub_date_dt__month=pub_month)
+
     papers = papers.order_by('-source', '-pub_date_dt')
 
     page_number = request.GET.get('page')
@@ -58,7 +66,22 @@ def home(request):
         paper.index = index + 1
     return render(request, 'core/home.html', {
         'query': query,
+        'pub_year': pub_year,
+        'pub_month': pub_month,
         'get_params': get_params,
         'papers': papers,
         'items': items,
+    })
+
+def stat(request):
+    year_counts = Counter([i.pub_date_dt.year \
+                           for i in Paper.objects.all().order_by('-pub_date_dt')])
+    sorted_year_counts = sorted(year_counts.items(), key=lambda x: x[0], reverse=True)
+    month_counts = Counter([f"{i.pub_date_dt.year}-{i.pub_date_dt.month:02}" \
+                            for i in Paper.objects.all().order_by('-pub_date_dt')])
+    sorted_month_counts = sorted(month_counts.items(), key=lambda x: x[0], reverse=True)
+
+    return render(request, 'core/stat.html', {
+        'year_counts': sorted_year_counts,
+        'month_counts': sorted_month_counts,
     })
