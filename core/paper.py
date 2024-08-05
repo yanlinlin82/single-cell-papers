@@ -129,10 +129,10 @@ def parse_date(raw_text):
             year, season, day = raw_text.split(' ')
             month = season_to_month[season.lower()]
             return datetime.strptime(f"{year}-{month}-{day}", '%Y-%m-%d').date()
-        elif re.match(r'\d{4}\s+(Spring|Summer|Fall|Autumn|Winter)\s*-\s*(Spring|Summer|Fall|Autumn|Winter)', raw_text, re.IGNORECASE):
+        elif re.match(r'\d{4}\s+(Spring|Summer|Fall|Autumn|Winter)\s*[\-/]\s*(Spring|Summer|Fall|Autumn|Winter)', raw_text, re.IGNORECASE):
             # e.g. 1992 Fall-Winter
             #      1992 Fall - Winter
-            pattern = r'(\d{4})\s+(Spring|Summer|Fall|Autumn|Winter)\s*-\s*(Spring|Summer|Fall|Autumn|Winter)'
+            pattern = r'(\d{4})\s+(Spring|Summer|Fall|Autumn|Winter)\s*[\-/]\s*(Spring|Summer|Fall|Autumn|Winter)'
             match = re.match(pattern, raw_text)
             year, season, _ = match.groups()
             month = season_to_month[season.lower()]
@@ -192,6 +192,12 @@ def parse_date(raw_text):
         elif re.match(r'\d{4}-\d{2}', raw_text):
             # e.g. 2020-01
             return datetime.strptime(raw_text, '%Y-%m').date().replace(day=1)
+        elif re.match(r'\d{4}\s+\d+-\d+\s[a-zA-Z]+', raw_text):
+            # e.g. 2022 17-24 Dec
+            match = re.match(r'(\d{4})\s+(\d+)-(\d+)\s([a-zA-Z]+)', raw_text)
+            year, day, _, month = match.groups()
+            month = correct_month(month)
+            return datetime.strptime(f"{year} {month} {day}", '%Y %b %d').date()
         elif re.match(r'\d{4}\s+\d+-\d+', raw_text):
             # e.g. 2016 11-12
             match = re.match(r'(\d{4})\s+(\d+)-\d+', raw_text)
