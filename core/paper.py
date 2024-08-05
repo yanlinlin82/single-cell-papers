@@ -26,94 +26,103 @@ def correct_month(month):
     # 常见的缩写转换字典
     month_mapping = {
         # 一月
-        "jan": "jan",          # 英语
+        "jan"    : "jan",      # 英语
         "janeiro": "jan",      # 葡萄牙语
-        "enero": "jan",        # 西班牙语
-        "janvier": "janv",     # 法语
+        "ene"    : "jan",      # 西班牙语
+        "enero"  : "jan",      # 西班牙语
+        "janvier": "jan",      # 法语
+        "gen"    : "jan",      # 意大利语
         "gennaio": "gen",      # 意大利语
 
         # 二月
-        "feb": "feb",          # 英语
-        "fev": "feb",          # 葡萄牙语
+        "feb"      : "feb",    # 英语
+        "fev"      : "feb",    # 葡萄牙语
         "fevereiro": "feb",    # 葡萄牙语
-        "febrero": "feb",      # 西班牙语
-        "février": "fév",      # 法语
-        "febbraio": "feb",     # 意大利语
+        "febrero"  : "feb",    # 西班牙语
+        "fév"      : "feb",    # 法语
+        "février"  : "feb",    # 法语
+        "febbraio" : "feb",    # 意大利语
 
         # 三月
-        "mar": "mar",          # 英语
+        "mar"  : "mar",        # 英语
         "março": "mar",        # 葡萄牙语
         "marzo": "mar",        # 西班牙语, 意大利语
-        "mars": "mars",        # 法语
+        "mars" : "mar",        # 法语
 
         # 四月
-        "apr": "apr",          # 英语
-        "abr": "apr",          # 葡萄牙语, 西班牙语
+        "apr"  : "apr",        # 英语
+        "abr"  : "apr",        # 葡萄牙语, 西班牙语
         "abril": "apr",        # 葡萄牙语, 西班牙语
-        "avril": "avr",        # 法语
+        "avr"  : "apr",        # 法语
+        "avril": "apr",        # 法语
 
         # 五月
-        "may": "may",          # 英语
-        "mai": "may",          # 葡萄牙语, 法语
-        "mayo": "may",         # 西班牙语
-        "maggio": "mag",       # 意大利语
+        "may"   : "may",       # 英语
+        "mai"   : "may",       # 葡萄牙语, 法语
+        "mayo"  : "may",       # 西班牙语
+        "mag"   : "may",       # 意大利语
+        "maggio": "may",       # 意大利语
 
         # 六月
-        "jun": "jun",          # 英语
-        "junho": "jun",        # 葡萄牙语
-        "junio": "jun",        # 西班牙语
-        "juin": "juin",        # 法语
-        "giugno": "giu",       # 意大利语
+        "jun"   : "jun",       # 英语
+        "junho" : "jun",       # 葡萄牙语
+        "junio" : "jun",       # 西班牙语
+        "jui"   : "jun",       # 法语
+        "juin"  : "jun",       # 法语
+        "giu"   : "jun",       # 意大利语
+        "giugno": "jun",       # 意大利语
 
         # 七月
-        "jul": "jul",          # 英语
-        "julho": "jul",        # 葡萄牙语
-        "julio": "jul",        # 西班牙语
-        "juillet": "juill",    # 法语
-        "luglio": "lug",       # 意大利语
+        "jul"    : "jul",      # 英语
+        "julho"  : "jul",      # 葡萄牙语
+        "julio"  : "jul",      # 西班牙语
+        "juillet": "jul",      # 法语
+        "lug"    : "jul",      # 意大利语
+        "luglio" : "lul",      # 意大利语
 
         # 八月
-        "aug": "aug",          # 英语
-        "ago": "aug",          # 葡萄牙语, 西班牙语, 意大利语
+        "aug"   : "aug",       # 英语
+        "ago"   : "aug",       # 葡萄牙语, 西班牙语, 意大利语
         "agosto": "aug",       # 葡萄牙语, 西班牙语, 意大利语
-        "août": "août",        # 法语
+        "aoû"   : "aug",       # 法语
+        "août"  : "aug",       # 法语
 
         # 九月
-        "sep": "sep",          # 英语
-        "set": "sep",          # 葡萄牙语, 意大利语
-        "setembro": "sep",     # 葡萄牙语
+        "sep"       : "sep",   # 英语
+        "set"       : "sep",   # 葡萄牙语, 意大利语
+        "setembro"  : "sep",   # 葡萄牙语
+        "sept"      : "sep",   # 葡萄牙语
         "septiembre": "sep",   # 西班牙语
-        "septembre": "sept",   # 法语
-        "settembre": "set",    # 意大利语
+        "septembre" : "sep",   # 法语
+        "settembre" : "sep",   # 意大利语
 
         # 十月
-        "oct": "oct",          # 英语
-        "out": "oct",          # 葡萄牙语
+        "oct"    : "oct",      # 英语
+        "out"    : "oct",      # 葡萄牙语
         "outubro": "oct",      # 葡萄牙语
         "octubre": "oct",      # 西班牙语
         "octobre": "oct",      # 法语
         "ottobre": "ott",      # 意大利语
 
         # 十一月
-        "nov": "nov",          # 英语
-        "novembro": "nov",     # 葡萄牙语
+        "nov"      : "nov",    # 英语
+        "novembro" : "nov",    # 葡萄牙语
         "noviembre": "nov",    # 西班牙语
-        "novembre": "nov",     # 法语, 意大利语
+        "novembre" : "nov",    # 法语, 意大利语
 
         # 十二月
-        "dec": "dec",          # 英语
-        "dez": "dec",          # 葡萄牙语
-        "dezembro": "dec",     # 葡萄牙语
+        "dec"      : "dec",    # 英语
+        "dez"      : "dec",    # 葡萄牙语
+        "dezembro" : "dec",    # 葡萄牙语
+        "dic"      : "dec",    # 西班牙语
         "diciembre": "dec",    # 西班牙语
-        "décembre": "déc",     # 法语
-        "dicembre": "dic"      # 意大利语
+        "déc"      : "dec",    # 法语
+        "décembre" : "déc",    # 法语
+        "dicembre" : "dic"     # 意大利语
     }
 
-    # 截取前三个字符
-    short_month = month[:3]
-
     # 返回标准化的缩写
-    return month_mapping.get(short_month, short_month)
+    return month_mapping.get(month, month)
 
 # 测试函数
 #test_months = ["Janeiro", "Feb", "Março", "Abr", "Mayo", "Jun", "Julio", "Ago", "Septiembre", "Out", "Nov", "Diciembre"]
