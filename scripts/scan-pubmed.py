@@ -15,6 +15,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 django.setup()
 
 from core.models import Paper
+from core.paper import parse_date
 
 class PubmedArticle:
     def __init__(self, xml_node):
@@ -124,18 +125,15 @@ class PubmedArticle:
                         else:
                             # eg. <MedlineDate>2012 Jan-Feb</MedlineDate> or <MedlineDate>2012</MedlineDate>
                             self._pub_date = node[0]
-                            self._pub_year = int(node[0].split(' ')[0])
                     else:
-                        self._pub_date = self._pub_year = year[0]
-                        self._pub_year = int(self._pub_year)
+                        self._pub_date = year[0]
                         if len(month) > 0:
                             self._pub_date += '-' + month[0]
                             if len(day) > 0:
                                 self._pub_date += '-' + day[0]
         if self._pub_year is None:
             if self._pub_date:
-                self._pub_year = node[0].split(' ')[0]
-                self._pub_year = int(self._pub_year)
+                self._pub_year = parse_date(self._pub_date).year
 
     def __str__(self):
         return f"{self.pmid} - {self.pub_year} - {self.journal}\nTitle: {self.title}\nAbstract: {self.abstract}"
@@ -150,7 +148,7 @@ def ask_gpt(title, abstract, output_dir, pmid):
         print(f"Skip asking GPT for {pmid}, load from cache ...")
         with gzip.open(os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz"), 'rt', encoding='utf-8') as gz_file:
             data = json.load(gz_file)
-            return data['content']
+            return data.get('content')
 
     print(f"Asking GPT for {pmid} ...")
     in_msg = [
@@ -291,12 +289,13 @@ def process(xml_gz_file):
                 gz_file.write(json_str)
 
             res = ask_gpt(article.title, article.abstract, output_dir, article.pmid)
-            if res is not None:
+            if res is not None and isinstance(res, dict):
                 data.update(res)
 
             print("====================================")
             print(json.dumps(data, ensure_ascii=False, indent=4))
 
+    print(f"Processing {xml_gz_file} completed!")
     print(f"Total articles: {index + 1}, matched articles: {cnt}")
 
 if __name__ == "__main__":
@@ -304,6 +303,7 @@ if __name__ == "__main__":
         print(f"Usage: python {sys.argv[0]} <pubmed.xml.gz>")
         sys.exit(1)
 
+    print(f"Processing {sys.argv[1]} ...")
     env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
     if not os.path.exists(env_file):
         print(f"ERROR: Environment file {env_file} not found!")
