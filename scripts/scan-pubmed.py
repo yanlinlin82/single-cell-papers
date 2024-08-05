@@ -138,14 +138,21 @@ class PubmedArticle:
     def __str__(self):
         return f"{self.pmid} - {self.pub_year} - {self.journal}\nTitle: {self.title}\nAbstract: {self.abstract}"
 
-def article_match(article, keyword):
-    pattern = r'\b{}\b'.format(re.escape(keyword))
-    return re.search(pattern, article.title, re.IGNORECASE) \
-        or re.search(pattern, article.abstract, re.IGNORECASE)
+def article_match(article, keyword_list):
+    for keyword in keyword_list:
+        pattern = r'\b{}\b'.format(re.escape(keyword))
+        if re.search(pattern, article.title, re.IGNORECASE) \
+            or re.search(pattern, article.abstract, re.IGNORECASE):
+            return True
+    return False
 
 def ask_gpt(title, abstract, output_dir, pmid):
+    if abstract is None or abstract == "":
+        print(f"  Skip asking GPT for {pmid}, no abstract ...")
+        return None
+
     if os.path.exists(os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz")):
-        print(f"Skip asking GPT for {pmid}, load from cache ...")
+        print(f"  Skip asking GPT for {pmid}, load from cache ...")
         with gzip.open(os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz"), 'rt', encoding='utf-8') as gz_file:
             data = json.load(gz_file)
             return data.get('content')
@@ -247,20 +254,20 @@ def process(xml_gz_file):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    now = datetime.datetime.now()
     cnt = 0
     tree = etree.parse(xml_gz_file)
     root = tree.getroot()
     for index, xml_node in enumerate(root.xpath('/PubmedArticleSet/PubmedArticle')):
         article = PubmedArticle(xml_node)
-        if article.pub_year < now.year - 1:
-            continue
-        if article.abstract is None or article.abstract == '':
-            continue
-        if article_match(article, 'single-cell sequencing') or \
-            article_match(article, 'single-cell transcriptomics') or \
-            article_match(article, 'single-cell RNA-seq') or \
-            article_match(article, 'spatial transcriptomics'):
+        if article_match(article, [
+            'single-cell sequencing',
+            'single-cell RNA sequencing',
+            'single-cell transcriptomics',
+            'single-cell RNA-seq',
+            'single-cell transcriptome',
+            'scRNA-seq',
+            'spatial transcriptomics'
+            ]):
             cnt += 1
             print(f"Processing ({cnt}): (PMID: {article.pmid}) {article.title}")
 
@@ -270,15 +277,19 @@ def process(xml_gz_file):
                     print("  skipped because not latest source")
                     continue
 
-            data = {
-                "doi": article.doi,
-                "pmid": article.pmid,
-                "title": article.title,
-                "journal": article.journal,
-                "pub_date": article.pub_date,
-                "pub_year": article.pub_year,
-                "abstract": article.abstract,
-            }
+            try:
+                data = {
+                    "doi": article.doi,
+                    "pmid": article.pmid,
+                    "title": article.title,
+                    "journal": article.journal,
+                    "pub_date": article.pub_date,
+                    "pub_year": article.pub_year,
+                    "abstract": article.abstract,
+                }
+            except Exception as e:
+                print(f"  failed to extract data for {article.pmid}: " + str(e))
+                raise
 
             with gzip.open(os.path.join(output_dir, f"{article.pmid}.1-pubmed.xml.gz"), 'wt', encoding='utf-8') as gz_file:
                 xml_str = etree.tostring(article.xml_node, encoding='utf-8').decode('utf-8')
