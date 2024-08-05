@@ -192,6 +192,11 @@ def parse_date(raw_text):
         elif re.match(r'\d{4}-\d{2}', raw_text):
             # e.g. 2020-01
             return datetime.strptime(raw_text, '%Y-%m').date().replace(day=1)
+        elif re.match(r'\d{4}\s+\d+-\d+', raw_text):
+            # e.g. 2016 11-12
+            match = re.match(r'(\d{4})\s+(\d+)-\d+', raw_text)
+            year, month = match.groups()
+            return datetime.strptime(f"{year} {month} 01", '%Y %m %d').date()
         elif re.match(r'\d{4}\s+[a-zA-Z]+\.?', raw_text):
             # e.g. 2020 January
             #      2020 Sept.
@@ -201,12 +206,25 @@ def parse_date(raw_text):
             match = re.match(pattern, raw_text)
             year, month = match.groups()
             month = correct_month(month)
-            return datetime.strptime(f"{year} {month} 01", '%Y %b %d').date()
-        elif re.match(r'\d{4}\s+\d+-\d+', raw_text):
-            # e.g. 2016 11-12
-            match = re.match(r'(\d{4})\s+(\d+)-\d+', raw_text)
-            year, month = match.groups()
-            return datetime.strptime(f"{year} {month} 01", '%Y %m %d').date()
+            try:
+                return datetime.strptime(f"{year} {month} 01", '%Y %b %d').date()
+            except ValueError:
+                if re.match(r'\d{4}\s', raw_text):
+                    # e.g. 2022 Special Issue On Puerto Rico
+                    year_only = raw_text[:4]
+                    return datetime.strptime(year_only, '%Y').date().replace(month=1, day=1)
+                else:
+                    print(f"Failed to parse date for unexpected format: '{raw_text}'")
+                    return None
+        elif re.match(r'\d{4}\s+[0-9]+(st|nd|rd|th)?\s+[a-zA-Z]+', raw_text):
+            # e.g. 2017 5th Jan 2017
+            #      2017 5th January 2017
+            #      2017 5 Jan
+            pattern = r'(\d{4})\s+([0-9]+)(st|nd|rd|th)?\s+([a-zA-Z]+)'
+            match = re.match(pattern, raw_text)
+            year, day, _, month = match.groups()
+            month = correct_month(month)
+            return datetime.strptime(f"{year} {month} {day}", '%Y %b %d').date()
         elif re.match(r'\d{4}', raw_text):
             # e.g. 2020
             return datetime.strptime(raw_text, '%Y').date().replace(month=1, day=1)
