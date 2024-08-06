@@ -1,6 +1,5 @@
 import os
 import sys
-import datetime
 import re
 from lxml import etree
 import gzip
@@ -218,28 +217,50 @@ Abstract: {abstract}
 
     out_msg = None
     try:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if api_key is None:
+            print("ERROR: OPENAI_API_KEY not set!")
+            return None
+        client = openai.OpenAI(api_key=api_key)
+
+        base_url = os.environ.get("OPENAI_BASE_URL")
+        if base_url is not None:
+            client.base_url = base_url
+
         proxy_url = os.environ.get("OPENAI_PROXY_URL")
         if proxy_url is None or proxy_url == "":
-            client = openai.OpenAI()
-        else:
-            client = openai.OpenAI(http_client=httpx.Client(proxy=proxy_url))
+            client.http_client = httpx.Client(proxy=proxy_url)
+
+        model = os.environ.get("OPENAI_MODEL")
+        if model is None:
+            print("ERROR: OPENAI_MODEL not set!")
+            return None
+
         completion = client.chat.completions.create(
-            model = os.environ.get("OPENAI_MODEL"),
+            model = model,
             messages = in_msg,
         )
         out_msg = completion.choices[0].message
     except Exception as e:
-        print("Failed to connect to OpenAI server! " + str(e))
+        print("ERROR: Failed to connect to OpenAI server! " + str(e))
     
-    if out_msg is not None:
+    if out_msg is not None and hasattr(out_msg, 'role') and hasattr(out_msg, 'content'):
         data = {
             "role": out_msg.role,
             "content": "",
         }
+
+        content = out_msg.content.strip()
+        if re.match('```json', content):
+            content = re.sub(r'^```json', '', content, flags=re.MULTILINE)
+            content = re.sub(r'```$', '', content, flags=re.MULTILINE)
+            content = content.strip()
+            content = re.sub(r',\s*}', '}', content) # remove trailing comma before '}'
         try:
-            data['content'] = json.loads(out_msg.content)
+            data['content'] = json.loads(content)
         except Exception as e:
-            data['content'] = out_msg.content
+            data['content'] = out_msg.content # keep original content
+            print(f"ERROR: Failed to parse JSON content: {e}")
 
         with gzip.open(os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz"), 'wt', encoding='utf-8') as gz_file:
             json_str = json.dumps(data, ensure_ascii=False, indent=4)

@@ -31,9 +31,10 @@
     ```
 
     ```txt
-    OPENAI_API_KEY=sk-XXXX  # 填写自己OpenAI账号的API Key
-    OPENAI_PROXY_URL=socks5://x.x.x.x:xxxx  # 用于翻墙
-    OPENAI_MODEL=gpt-4o-mini
+    OPENAI_BASE_URL=https://api.deepseek.com  # 若使用 openai API，则留空，或使用 https://api.openai.com/v1
+    OPENAI_API_KEY=sk-XXXX                    # 填写自己账号的 API Key
+    OPENAI_MODEL=deepseek-chat                # 若使用 openai API，可设置为 gpt-4o-mini
+    OPENAI_PROXY_URL=socks5://x.x.x.x:xxxx    # 用于（从国内翻墙）调用 openai API，使用 DeepSeek 则可不配置此项
     ```
   
 4. 初始化并运行Django
