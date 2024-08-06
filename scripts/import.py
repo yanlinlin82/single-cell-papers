@@ -24,7 +24,8 @@ if __name__ == '__main__':
             if not re.match(r'.*\.2-info.json.gz$', file):
                 continue
 
-            source = os.path.basename(root)
+            source = root.rstrip('/').split('/')[-1]
+            print(f"root: {root}, source: {source}")
             pmid = file.split('.')[0]
 
             info_file = os.path.join(root, file)
@@ -40,6 +41,7 @@ if __name__ == '__main__':
             paper_list = Paper.objects.filter(pmid=pmid)
             if paper_list:
                 paper = paper_list[0]
+                print(f"  paper.source: {paper.source}, source: {source}")
                 if paper.source is not None and source < paper.source:
                     print("  skipped because not latest source")
                     continue
