@@ -5,6 +5,7 @@ class Paper(models.Model):
     modified = models.DateTimeField(auto_now=True)
 
     source = models.CharField(max_length=32, null=True, blank=True, default='')
+    parse_time = models.DateTimeField(null=True, blank=True, default=None)
 
     title = models.CharField(max_length=512)
     journal = models.CharField(max_length=512, null=True, blank=True, default='')
@@ -13,6 +14,7 @@ class Paper(models.Model):
     pub_year = models.IntegerField(null=True, blank=True, default=None)
     doi = models.CharField(max_length=128, null=True, blank=True, default='')
     pmid = models.CharField(max_length=32, null=True, blank=True, default='')
+    abstract = models.TextField(null=True, blank=True, default='')
 
     article_type = models.CharField(max_length=255, null=True, blank=True, default='')
     description = models.CharField(max_length=255, null=True, blank=True, default='')

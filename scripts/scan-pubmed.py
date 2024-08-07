@@ -146,16 +146,6 @@ def article_match(article, keyword_list):
     return False
 
 def ask_gpt(title, abstract, output_dir, pmid):
-    if abstract is None or abstract == "":
-        print(f"  Skip asking GPT for {pmid}, no abstract ...")
-        return None
-
-    if os.path.exists(os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz")):
-        print(f"  Skip asking GPT for {pmid}, load from cache ...")
-        with gzip.open(os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz"), 'rt', encoding='utf-8') as gz_file:
-            data = json.load(gz_file)
-            return data.get('content')
-
     print(f"Asking GPT for {pmid} ...")
     in_msg = [
         {
@@ -269,66 +259,104 @@ Abstract: {abstract}
 
     return None
 
-def process(xml_gz_file):
+def update_ai_parsed_results(paper, data):
+    paper.article_type = data.get('article_type', '')
+    paper.description = data.get('description', '')
+    paper.novelty = data.get('novelty', '')
+    paper.limitation = data.get('limitation', '')
+    paper.research_goal = data.get('research_goal', '')
+    paper.research_objects = data.get('research_objects', '')
+    paper.field_category = data.get('field_category', '')
+    paper.disease_category = data.get('disease_category', '')
+    paper.technique = data.get('technique', '')
+    paper.model_type = data.get('model_type', '')
+    paper.data_type = data.get('data_type', '')
+    paper.sample_size = data.get('sample_size', '')
+
+def process(xml_gz_file, keyword_list):
     xml_source_id = os.path.basename(xml_gz_file).split('.')[0]
     output_dir = os.path.join('output', xml_source_id)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    cnt = 0
+    cnt, new_cnt, updated_cnt = 0, 0, 0
     tree = etree.parse(xml_gz_file)
     root = tree.getroot()
+    total = len(root.xpath('/PubmedArticleSet/PubmedArticle'))
     for index, xml_node in enumerate(root.xpath('/PubmedArticleSet/PubmedArticle')):
         article = PubmedArticle(xml_node)
-        if article_match(article, [
-            'single-cell sequencing',
-            'single-cell RNA sequencing',
-            'single-cell transcriptomics',
-            'single-cell RNA-seq',
-            'single-cell transcriptome',
-            'scRNA-seq',
-            'spatial transcriptomics'
-            ]):
-            cnt += 1
-            print(f"Processing ({cnt}): (PMID: {article.pmid}) {article.title}")
+        if not article_match(article, keyword_list):
+            continue
 
-            paper = Paper.objects.filter(pmid=article.pmid)
-            if paper:
-                if paper[0].source is not None and xml_source_id < paper[0].source:
-                    print("  skipped because not latest source")
-                    continue
+        cnt += 1
+        print(f"Processing ({xml_source_id} - {index + 1}/{total} - {cnt}): (PMID: {article.pmid}) {article.title}")
 
-            try:
-                data = {
-                    "doi": article.doi,
-                    "pmid": article.pmid,
-                    "title": article.title,
-                    "journal": article.journal,
-                    "pub_date": article.pub_date,
-                    "pub_year": article.pub_year,
-                    "abstract": article.abstract,
-                }
-            except Exception as e:
-                print(f"  failed to extract data for {article.pmid}: " + str(e))
-                raise
+        with gzip.open(os.path.join(output_dir, f"{article.pmid}.1-pubmed.xml.gz"), 'wt', encoding='utf-8') as gz_file:
+            xml_str = etree.tostring(article.xml_node, encoding='utf-8').decode('utf-8')
+            gz_file.write(xml_str)
 
-            with gzip.open(os.path.join(output_dir, f"{article.pmid}.1-pubmed.xml.gz"), 'wt', encoding='utf-8') as gz_file:
-                xml_str = etree.tostring(article.xml_node, encoding='utf-8').decode('utf-8')
-                gz_file.write(xml_str)
+        try:
+            data = {
+                "doi": article.doi,
+                "pmid": article.pmid,
+                "title": article.title,
+                "journal": article.journal,
+                "pub_date": article.pub_date,
+                "pub_year": article.pub_year,
+                "abstract": article.abstract,
+            }
+        except Exception as e:
+            print(f"  failed to extract data for {article.pmid}: " + str(e))
+            raise
 
-            with gzip.open(os.path.join(output_dir, f"{article.pmid}.2-info.json.gz"), 'wt', encoding='utf-8') as gz_file:
-                json_str = json.dumps(data, ensure_ascii=False, indent=4)
-                gz_file.write(json_str)
+        with gzip.open(os.path.join(output_dir, f"{article.pmid}.2-info.json.gz"), 'wt', encoding='utf-8') as gz_file:
+            json_str = json.dumps(data, ensure_ascii=False, indent=4)
+            gz_file.write(json_str)
 
-            res = ask_gpt(article.title, article.abstract, output_dir, article.pmid)
-            if res is not None and isinstance(res, dict):
-                data.update(res)
+        create_new = False
+        need_parse_by_ai = False  # only parse by AI if title or abstract changed
+        paper_list = Paper.objects.filter(pmid=article.pmid)
+        if paper_list:
+            paper = paper_list[0]
+            if paper.source is not None and xml_source_id <= paper.source:
+                print(f"  skipped because not latest source (xml:{xml_source_id}) <= (db:{paper.source})")
+                continue
+            paper.source = xml_source_id
+            updated_cnt += 1
+        else:
+            paper = Paper(pmid=article.pmid, source=xml_source_id)
+            create_new = True
+            new_cnt += 1
 
-            print("====================================")
-            print(json.dumps(data, ensure_ascii=False, indent=4))
+        if create_new or (paper.title != data['title'] or paper.abstract != data['abstract']):
+            need_parse_by_ai = True
+        paper.title = data['title']
+        paper.journal = data['journal']
+        paper.pub_date = data['pub_date']
+        paper.pub_date_dt = parse_date(data['pub_date'])
+        paper.pub_year = data['pub_year']
+        paper.doi = data['doi']
+        paper.abstract = data['abstract']
+
+        if need_parse_by_ai:
+            if paper.abstract is None or paper.abstract == "":
+                print(f"  Skip asking GPT for {article.pmid}, no abstract ...")
+            else:
+                res = ask_gpt(article.title, article.abstract, output_dir, article.pmid)
+                if res is None or not isinstance(res, dict):
+                    print(f"  Skip asking GPT for {article.pmid}, no response ...")
+                else:
+                    data.update(res)
+                    update_ai_parsed_results(paper, res)
+                    paper.parse_time = django.utils.timezone.now()
+
+        paper.save()
+
+        print("====================================")
+        print(json.dumps(data, ensure_ascii=False, indent=4))
 
     print(f"Processing {xml_gz_file} completed!")
-    print(f"Total articles: {index + 1}, matched articles: {cnt}")
+    print(f"Total articles: {index + 1}, matched articles: {cnt} ({new_cnt} new, {updated_cnt} updated)")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -343,4 +371,12 @@ if __name__ == "__main__":
     print(f"Loading environment variables from {env_file}")
     dotenv.load_dotenv(env_file)
 
-    process(sys.argv[1])
+    process(sys.argv[1], [
+        'single-cell sequencing',
+        'single-cell RNA sequencing',
+        'single-cell transcriptomics',
+        'single-cell RNA-seq',
+        'single-cell transcriptome',
+        'scRNA-seq',
+        'spatial transcriptomics'
+        ])
