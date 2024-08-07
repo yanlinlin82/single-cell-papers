@@ -409,11 +409,6 @@ def process_single(xml_source_id, article, output_dir):
 
     title_or_abstract_changed = False
     if create_new or (paper.title != data['title'] or paper.abstract != data['abstract']):
-        print(f"  title or abstract changed for {article.pmid}")
-        print(f"  title from: {paper.title}")
-        print(f"          to: {data['title']}")
-        print(f"  abstract from: {paper.abstract}")
-        print(f"             to: {data['abstract']}")
         title_or_abstract_changed = True
 
     if paper.title != data['title']:
