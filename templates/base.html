@@ -10,6 +10,7 @@
   <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
   {% block custom_style %}{% endblock %}
   <style>
+    body { font-size: 0.9rem; } /* 通过修改字体大小来缩小页面文字 */
     .external-link::after {content: ' \2197'; font-size: 0.8em; margin-left: 0.2em; display: inline-block;}
   </style>
 </head>

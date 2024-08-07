@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block custom_style %}
+<style>
+.column {
+  min-width: 100px;
+  background-color: #f9f9f9;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 
 <h1>单细胞与空转测序相关文章</h1>
@@ -29,25 +38,25 @@
       <th>序号</th>
       <th>推送日期</th>
       <th>文章</th>
-      <th>类型</th>
-      <th>简述</th>
-      <th>创新点</th>
-      <th>不足</th>
-      <th>研究目的</th>
-      <th>研究对象</th>
-      <th>领域</th>
-      <th>病种</th>
-      <th>技术</th>
-      <th>模型</th>
-      <th>数据类型</th>
-      <th>样本量</th>
+      <th class="column">类型</th>
+      <th class="column">简述</th>
+      <th class="column">创新点</th>
+      <th class="column">不足</th>
+      <th class="column">研究目的</th>
+      <th class="column">研究对象</th>
+      <th class="column">领域</th>
+      <th class="column">病种</th>
+      <th class="column">技术</th>
+      <th class="column">模型</th>
+      <th class="column">数据类型</th>
+      <th class="column">样本量</th>
     </tr>
   </thead>
   <tbody>
     {% for paper in papers %}
     <tr>
       <td>{{ paper.index }}</td>
-      <td><a title="{{ paper.created | date:"Y-m-d H:i:s" }} {{ paper.source }}">{{ paper.created | date:"Y-m-d" }}</a></td>
+      <td><a title="{{ paper.parse_time | date:"Y-m-d H:i:s" }} {{ paper.source }}">{{ paper.parse_time | date:"Y-m-d" }}</a></td>
       <td>
         <div>{{ paper.title }}</div>
         <div class="mt-2">{{ paper.pub_date }}, {{ paper.journal }}</div>
@@ -56,18 +65,18 @@
           {% if paper.pmid %}PMID:<a href="https://pubmed.ncbi.nlm.nih.gov/{{ paper.pmid }}" target="_blank" class="external-link">{{ paper.pmid }}</a>{% endif %}
         </div>
       </td>
-      <td>{{ paper.article_type }}</td>
-      <td>{{ paper.description }}</td>
-      <td>{{ paper.novelty }}</td>
-      <td>{{ paper.limitation }}</td>
-      <td>{{ paper.research_goal }}</td>
-      <td>{{ paper.research_objects }}</td>
-      <td>{{ paper.field_category }}</td>
-      <td>{{ paper.disease_category }}</td>
-      <td>{{ paper.technique }}</td>
-      <td>{{ paper.model_type }}</td>
-      <td>{{ paper.data_type }}</td>
-      <td>{{ paper.sample_size }}</td>
+      <td class="column">{{ paper.article_type }}</td>
+      <td class="column">{{ paper.description }}</td>
+      <td class="column">{{ paper.novelty }}</td>
+      <td class="column">{{ paper.limitation }}</td>
+      <td class="column">{{ paper.research_goal }}</td>
+      <td class="column">{{ paper.research_objects }}</td>
+      <td class="column">{{ paper.field_category }}</td>
+      <td class="column">{{ paper.disease_category }}</td>
+      <td class="column">{{ paper.technique }}</td>
+      <td class="column">{{ paper.model_type }}</td>
+      <td class="column">{{ paper.data_type }}</td>
+      <td class="column">{{ paper.sample_size }}</td>
     </tr>
     {% endfor %}
   </tbody>
