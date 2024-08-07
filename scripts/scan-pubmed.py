@@ -344,38 +344,37 @@ def write_pubmed_json_file(data, pubmed_json_file):
 def parse_by_ai(title_or_abstract_changed, pmid, title, abstract, paper, data, output_dir):
     if title is None or title == "":
         print(f"  Skip asking GPT for {pmid}, no title ...")
-        return False
+        return False, False
 
     if paper.abstract is None or paper.abstract == "":
         print(f"  Skip asking GPT for {pmid}, no abstract ...")
-        return False
+        return False, False
 
     ai_ask_file = os.path.join(output_dir, f"{pmid}.3-chat-ask.json.gz")
     ai_answer_file = os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz")
+    ai_queried = False
     if not os.path.exists(ai_answer_file) or title_or_abstract_changed:
         res = ask_gpt(pmid, title, abstract, ai_ask_file, ai_answer_file)
+        ai_queried = True
     else:
         with gzip.open(ai_answer_file, 'rt', encoding='utf-8') as gz_file:
             res = json.load(gz_file).get('content', None)
 
     if res is None:
         print(f"  Skip asking GPT for {pmid}, no response ...")
-        return False
+        return False, False
     elif isinstance(res, str):
         try:
-            print(f"  Fixing invalid JSON string ...")
-            print(f"  before: {res}")
             res = fix_invalid_json_str(res)
-            print(f"  after: {res}")
             res = json.loads(res)
         except Exception as e:
             print(f"  Skip asking GPT for {pmid}, failed to parse response: {e}")
             print(f"  res = {res}")
-            return False
+            return False, False
     elif not isinstance(res, dict):
         print(f"  Skip asking GPT for {pmid}, invalid response ...")
         print(f"  res = {res}")
-        return False
+        return False, False
     else:
         pass
 
@@ -383,7 +382,7 @@ def parse_by_ai(title_or_abstract_changed, pmid, title, abstract, paper, data, o
     any_updated = update_ai_parsed_results(paper, res)
     if any_updated:
         paper.parse_time = django.utils.timezone.now()
-    return any_updated
+    return any_updated, ai_queried
 
 def process_single(xml_source_id, article, output_dir):
 
@@ -393,7 +392,6 @@ def process_single(xml_source_id, article, output_dir):
 
     create_new = False
     any_updated = False
-    need_parse_by_ai = False  # only parse by AI if title or abstract changed
     paper_list = Paper.objects.filter(pmid=article.pmid)
     if paper_list:
         paper = paper_list[0]
@@ -411,6 +409,11 @@ def process_single(xml_source_id, article, output_dir):
 
     title_or_abstract_changed = False
     if create_new or (paper.title != data['title'] or paper.abstract != data['abstract']):
+        print(f"  title or abstract changed for {article.pmid}")
+        print(f"  title from: {paper.title}")
+        print(f"          to: {data['title']}")
+        print(f"  abstract from: {paper.abstract}")
+        print(f"             to: {data['abstract']}")
         title_or_abstract_changed = True
 
     if paper.title != data['title']:
@@ -436,16 +439,16 @@ def process_single(xml_source_id, article, output_dir):
         paper.abstract = data['abstract']
         any_updated = True
 
-    if parse_by_ai(title_or_abstract_changed, article.pmid, article.title, article.abstract, paper, data, output_dir):
+    updated, ai_queried = parse_by_ai(title_or_abstract_changed, article.pmid, article.title, article.abstract, paper, data, output_dir)
+    if updated:
         any_updated = True
 
     if any_updated:
         paper.save()
+        print("====================================")
+        print(json.dumps(data, ensure_ascii=False, indent=4))
 
-    print("====================================")
-    print(json.dumps(data, ensure_ascii=False, indent=4))
-
-    return create_new, not create_new, need_parse_by_ai
+    return create_new, any_updated, ai_queried
 
 def process(xml_gz_file, keyword_list):
     xml_source_id = os.path.basename(xml_gz_file).split('.')[0]
@@ -453,7 +456,7 @@ def process(xml_gz_file, keyword_list):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    cnt, new_cnt, updated_cnt, ai_updated_cnt = 0, 0, 0, 0
+    cnt, new_cnt, updated_cnt, ai_queried_cnt = 0, 0, 0, 0
     tree = etree.parse(xml_gz_file)
     root = tree.getroot()
     total = len(root.xpath('/PubmedArticleSet/PubmedArticle'))
@@ -465,16 +468,16 @@ def process(xml_gz_file, keyword_list):
         cnt += 1
         print(f"Processing ({xml_source_id} - {index + 1}/{total} - {cnt}): (PMID: {article.pmid}) {article.title}")
 
-        created, updated, ai_updated = process_single(xml_source_id, article, output_dir)
+        created, updated, ai_queried = process_single(xml_source_id, article, output_dir)
         if created:
             new_cnt += 1
         if updated:
             updated_cnt += 1
-        if ai_updated:
-            ai_updated_cnt += 1
+        if ai_queried:
+            ai_queried_cnt += 1
 
     print(f"Processing {xml_gz_file} completed!")
-    print(f"Total articles: {index + 1}, matched articles: {cnt} ({new_cnt} new, {updated_cnt} updated, {ai_updated_cnt} AI updated)")
+    print(f"Total articles: {index + 1}, matched articles: {cnt} ({new_cnt} new, {updated_cnt} updated, {ai_queried_cnt} AI queried)")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
