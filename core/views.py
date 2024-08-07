@@ -63,7 +63,7 @@ def home(request):
         del get_params['page']
 
     for index, paper in enumerate(papers):
-        paper.index = index + 1
+        paper.index = index + papers.start_index()
     return render(request, 'core/home.html', {
         'query': query,
         'pub_year': pub_year,
