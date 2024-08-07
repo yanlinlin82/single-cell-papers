@@ -145,9 +145,8 @@ def article_match(article, keyword_list):
             return True
     return False
 
-def ask_gpt(title, abstract, output_dir, pmid):
-    print(f"Asking GPT for {pmid} ...")
-    in_msg = [
+def prepare_gpt_in_msg(title, abstract):
+    return [
         {
             "role": "system",
             "content": """
@@ -201,10 +200,29 @@ Abstract: {abstract}
         },
     ]
 
-    with gzip.open(os.path.join(output_dir, f"{pmid}.3-chat-ask.json.gz"), 'wt', encoding='utf-8') as gz_file:
-        json_str = json.dumps(in_msg, ensure_ascii=False, indent=4)
-        gz_file.write(json_str)
+def prepare_gpt_input(title, abstract, gpt_input_file):
+    if os.path.exists(gpt_input_file):
+        with gzip.open(gpt_input_file, 'rt', encoding='utf-8') as gz_file:
+            return json.load(gz_file)
+    else:
+        in_msg = prepare_gpt_in_msg(title, abstract)
+        with gzip.open(gpt_input_file, 'wt', encoding='utf-8') as gz_file:
+            json_str = json.dumps(in_msg, ensure_ascii=False, indent=4)
+            gz_file.write(json_str)
+        return in_msg
 
+def fix_invalid_json_str(json_str):
+    content = json_str.strip()
+    if re.match('```json', content):
+        content = re.sub(r'^```json', '', content, flags=re.MULTILINE)
+        content = re.sub(r'```$', '', content, flags=re.MULTILINE)
+        content = content.strip()
+    content = re.sub(r',\s*}', '}', content) # remove trailing comma before '}'
+    return content
+
+def ask_gpt(pmid, title, abstract, input_file, output_file):
+    print(f"Asking GPT for {pmid} ...")
+    in_msg = prepare_gpt_input(title, abstract, input_file)
     out_msg = None
     try:
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -233,45 +251,201 @@ Abstract: {abstract}
         out_msg = completion.choices[0].message
     except Exception as e:
         print("ERROR: Failed to connect to OpenAI server! " + str(e))
+        return None
     
-    if out_msg is not None and hasattr(out_msg, 'role') and hasattr(out_msg, 'content'):
-        data = {
-            "role": out_msg.role,
-            "content": "",
-        }
+    if out_msg is None or not hasattr(out_msg, 'role') or not hasattr(out_msg, 'content'):
+        print("ERROR: Invalid response from OpenAI server!")
+        return None
 
-        content = out_msg.content.strip()
-        if re.match('```json', content):
-            content = re.sub(r'^```json', '', content, flags=re.MULTILINE)
-            content = re.sub(r'```$', '', content, flags=re.MULTILINE)
-            content = content.strip()
-            content = re.sub(r',\s*}', '}', content) # remove trailing comma before '}'
-        try:
-            data['content'] = json.loads(content)
-        except Exception as e:
-            data['content'] = out_msg.content # keep original content
-            print(f"ERROR: Failed to parse JSON content: {e}")
+    data = {
+        "role": out_msg.role,
+        "content": "",
+    }
+    content = fix_invalid_json_str(out_msg.content)
+    try:
+        data['content'] = json.loads(content)
+    except Exception as e:
+        data['content'] = out_msg.content # keep original content
+        print(f"ERROR: Failed to parse JSON content: {e}")
 
-        with gzip.open(os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz"), 'wt', encoding='utf-8') as gz_file:
-            json_str = json.dumps(data, ensure_ascii=False, indent=4)
-            gz_file.write(json_str)
-        return data['content']
-
-    return None
+    with gzip.open(output_file, 'wt', encoding='utf-8') as gz_file:
+        json_str = json.dumps(data, ensure_ascii=False, indent=4)
+        gz_file.write(json_str)
+    return data['content']
 
 def update_ai_parsed_results(paper, data):
-    paper.article_type = data.get('article_type', '')
-    paper.description = data.get('description', '')
-    paper.novelty = data.get('novelty', '')
-    paper.limitation = data.get('limitation', '')
-    paper.research_goal = data.get('research_goal', '')
-    paper.research_objects = data.get('research_objects', '')
-    paper.field_category = data.get('field_category', '')
-    paper.disease_category = data.get('disease_category', '')
-    paper.technique = data.get('technique', '')
-    paper.model_type = data.get('model_type', '')
-    paper.data_type = data.get('data_type', '')
-    paper.sample_size = data.get('sample_size', '')
+    any_updated = False
+    if paper.article_type != data.get('article_type', ''):
+        paper.article_type = data.get('article_type', '')
+        any_updated = True
+    if paper.description != data.get('description', ''):
+        paper.description = data.get('description', '')
+        any_updated = True
+    if paper.novelty != data.get('novelty', ''):
+        paper.novelty = data.get('novelty', '')
+        any_updated = True
+    if paper.limitation != data.get('limitation', ''):
+        paper.limitation = data.get('limitation', '')
+        any_updated = True
+    if paper.research_goal != data.get('research_goal', ''):
+        paper.research_goal = data.get('research_goal', '')
+        any_updated = True
+    if paper.research_objects != data.get('research_objects', ''):
+        paper.research_objects = data.get('research_objects', '')
+        any_updated = True
+    if paper.field_category != data.get('field_category', ''):
+        paper.field_category = data.get('field_category', '')
+        any_updated = True
+    if paper.disease_category != data.get('disease_category', ''):
+        paper.disease_category = data.get('disease_category', '')
+        any_updated = True
+    if paper.technique != data.get('technique', ''):
+        paper.technique = data.get('technique', '')
+        any_updated = True
+    if paper.model_type != data.get('model_type', ''):
+        paper.model_type = data.get('model_type', '')
+        any_updated = True
+    if paper.data_type != data.get('data_type', ''):
+        paper.data_type = data.get('data_type', '')
+        any_updated = True
+    if paper.sample_size != data.get('sample_size', ''):
+        paper.sample_size = data.get('sample_size', '')
+        any_updated = True
+    return any_updated
+
+def write_pubmed_xml_file(xml_node, pubmed_xml_file):
+    if not os.path.exists(pubmed_xml_file):
+        with gzip.open(pubmed_xml_file, 'wt', encoding='utf-8') as gz_file:
+            xml_str = etree.tostring(xml_node, encoding='utf-8').decode('utf-8')
+            gz_file.write(xml_str)
+
+def parse_pubmed_xml(article):
+    try:
+        data = {
+            "doi": article.doi,
+            "pmid": article.pmid,
+            "title": article.title,
+            "journal": article.journal,
+            "pub_date": article.pub_date,
+            "pub_year": article.pub_year,
+            "abstract": article.abstract,
+        }
+        return data
+    except Exception as e:
+        print(f"  failed to extract data for {article.pmid}: " + str(e))
+        raise
+
+def write_pubmed_json_file(data, pubmed_json_file):
+    if not os.path.exists(pubmed_json_file):
+        with gzip.open(pubmed_json_file, 'wt', encoding='utf-8') as gz_file:
+            json_str = json.dumps(data, ensure_ascii=False, indent=4)
+            gz_file.write(json_str)
+
+def parse_by_ai(title_or_abstract_changed, pmid, title, abstract, paper, data, output_dir):
+    if title is None or title == "":
+        print(f"  Skip asking GPT for {pmid}, no title ...")
+        return False
+
+    if paper.abstract is None or paper.abstract == "":
+        print(f"  Skip asking GPT for {pmid}, no abstract ...")
+        return False
+
+    ai_ask_file = os.path.join(output_dir, f"{pmid}.3-chat-ask.json.gz")
+    ai_answer_file = os.path.join(output_dir, f"{pmid}.4-chat-answer.json.gz")
+    if not os.path.exists(ai_answer_file) or title_or_abstract_changed:
+        res = ask_gpt(pmid, title, abstract, ai_ask_file, ai_answer_file)
+    else:
+        with gzip.open(ai_answer_file, 'rt', encoding='utf-8') as gz_file:
+            res = json.load(gz_file).get('content', None)
+
+    if res is None:
+        print(f"  Skip asking GPT for {pmid}, no response ...")
+        return False
+    elif isinstance(res, str):
+        try:
+            print(f"  Fixing invalid JSON string ...")
+            print(f"  before: {res}")
+            res = fix_invalid_json_str(res)
+            print(f"  after: {res}")
+            res = json.loads(res)
+        except Exception as e:
+            print(f"  Skip asking GPT for {pmid}, failed to parse response: {e}")
+            print(f"  res = {res}")
+            return False
+    elif not isinstance(res, dict):
+        print(f"  Skip asking GPT for {pmid}, invalid response ...")
+        print(f"  res = {res}")
+        return False
+    else:
+        pass
+
+    data.update(res)
+    any_updated = update_ai_parsed_results(paper, res)
+    if any_updated:
+        paper.parse_time = django.utils.timezone.now()
+    return any_updated
+
+def process_single(xml_source_id, article, output_dir):
+
+    write_pubmed_xml_file(article.xml_node, os.path.join(output_dir, f"{article.pmid}.1-pubmed.xml.gz"))
+    data = parse_pubmed_xml(article)
+    write_pubmed_json_file(data, os.path.join(output_dir, f"{article.pmid}.2-info.json.gz"))
+
+    create_new = False
+    any_updated = False
+    need_parse_by_ai = False  # only parse by AI if title or abstract changed
+    paper_list = Paper.objects.filter(pmid=article.pmid)
+    if paper_list:
+        paper = paper_list[0]
+        if paper.source is not None and xml_source_id < paper.source:
+            print(f"  skipped because not latest source (xml:{xml_source_id}) < (db:{paper.source})")
+            return False, False, False
+
+        if paper.source is None or paper.source != xml_source_id:
+            paper.source = xml_source_id
+            any_updated = True
+    else:
+        paper = Paper(pmid=article.pmid, source=xml_source_id)
+        create_new = True
+        any_updated = True
+
+    title_or_abstract_changed = False
+    if create_new or (paper.title != data['title'] or paper.abstract != data['abstract']):
+        title_or_abstract_changed = True
+
+    if paper.title != data['title']:
+        paper.title = data['title']
+        any_updated = True
+    if paper.journal != data['journal']:
+        paper.journal = data['journal']
+        any_updated = True
+    if paper.pub_date != data['pub_date']:
+        paper.pub_date = data['pub_date']
+        any_updated = True
+    pub_date_dt = parse_date(data['pub_date'])
+    if paper.pub_date_dt != pub_date_dt:
+        paper.pub_date_dt = pub_date_dt
+        any_updated = True
+    if paper.pub_year != data['pub_year']:
+        paper.pub_year = data['pub_year']
+        any_updated = True
+    if paper.doi != data['doi']:
+        paper.doi = data['doi']
+        any_updated = True
+    if paper.abstract != data['abstract']:
+        paper.abstract = data['abstract']
+        any_updated = True
+
+    if parse_by_ai(title_or_abstract_changed, article.pmid, article.title, article.abstract, paper, data, output_dir):
+        any_updated = True
+
+    if any_updated:
+        paper.save()
+
+    print("====================================")
+    print(json.dumps(data, ensure_ascii=False, indent=4))
+
+    return create_new, not create_new, need_parse_by_ai
 
 def process(xml_gz_file, keyword_list):
     xml_source_id = os.path.basename(xml_gz_file).split('.')[0]
@@ -279,7 +453,7 @@ def process(xml_gz_file, keyword_list):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    cnt, new_cnt, updated_cnt = 0, 0, 0
+    cnt, new_cnt, updated_cnt, ai_updated_cnt = 0, 0, 0, 0
     tree = etree.parse(xml_gz_file)
     root = tree.getroot()
     total = len(root.xpath('/PubmedArticleSet/PubmedArticle'))
@@ -291,72 +465,16 @@ def process(xml_gz_file, keyword_list):
         cnt += 1
         print(f"Processing ({xml_source_id} - {index + 1}/{total} - {cnt}): (PMID: {article.pmid}) {article.title}")
 
-        with gzip.open(os.path.join(output_dir, f"{article.pmid}.1-pubmed.xml.gz"), 'wt', encoding='utf-8') as gz_file:
-            xml_str = etree.tostring(article.xml_node, encoding='utf-8').decode('utf-8')
-            gz_file.write(xml_str)
-
-        try:
-            data = {
-                "doi": article.doi,
-                "pmid": article.pmid,
-                "title": article.title,
-                "journal": article.journal,
-                "pub_date": article.pub_date,
-                "pub_year": article.pub_year,
-                "abstract": article.abstract,
-            }
-        except Exception as e:
-            print(f"  failed to extract data for {article.pmid}: " + str(e))
-            raise
-
-        with gzip.open(os.path.join(output_dir, f"{article.pmid}.2-info.json.gz"), 'wt', encoding='utf-8') as gz_file:
-            json_str = json.dumps(data, ensure_ascii=False, indent=4)
-            gz_file.write(json_str)
-
-        create_new = False
-        need_parse_by_ai = False  # only parse by AI if title or abstract changed
-        paper_list = Paper.objects.filter(pmid=article.pmid)
-        if paper_list:
-            paper = paper_list[0]
-            if paper.source is not None and xml_source_id <= paper.source:
-                print(f"  skipped because not latest source (xml:{xml_source_id}) <= (db:{paper.source})")
-                continue
-            paper.source = xml_source_id
-            updated_cnt += 1
-        else:
-            paper = Paper(pmid=article.pmid, source=xml_source_id)
-            create_new = True
+        created, updated, ai_updated = process_single(xml_source_id, article, output_dir)
+        if created:
             new_cnt += 1
-
-        if create_new or (paper.title != data['title'] or paper.abstract != data['abstract']):
-            need_parse_by_ai = True
-        paper.title = data['title']
-        paper.journal = data['journal']
-        paper.pub_date = data['pub_date']
-        paper.pub_date_dt = parse_date(data['pub_date'])
-        paper.pub_year = data['pub_year']
-        paper.doi = data['doi']
-        paper.abstract = data['abstract']
-
-        if need_parse_by_ai:
-            if paper.abstract is None or paper.abstract == "":
-                print(f"  Skip asking GPT for {article.pmid}, no abstract ...")
-            else:
-                res = ask_gpt(article.title, article.abstract, output_dir, article.pmid)
-                if res is None or not isinstance(res, dict):
-                    print(f"  Skip asking GPT for {article.pmid}, no response ...")
-                else:
-                    data.update(res)
-                    update_ai_parsed_results(paper, res)
-                    paper.parse_time = django.utils.timezone.now()
-
-        paper.save()
-
-        print("====================================")
-        print(json.dumps(data, ensure_ascii=False, indent=4))
+        if updated:
+            updated_cnt += 1
+        if ai_updated:
+            ai_updated_cnt += 1
 
     print(f"Processing {xml_gz_file} completed!")
-    print(f"Total articles: {index + 1}, matched articles: {cnt} ({new_cnt} new, {updated_cnt} updated)")
+    print(f"Total articles: {index + 1}, matched articles: {cnt} ({new_cnt} new, {updated_cnt} updated, {ai_updated_cnt} AI updated)")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
