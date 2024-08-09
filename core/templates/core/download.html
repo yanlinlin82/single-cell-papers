@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<h1>单细胞与空转测序相关文章</h1>
+
+<p class="my-4">
+<a href="/">返回首页</a> | <a href="/logout">退出登录</a>
+</p>
+
+<p class="mt-3">除通过在线浏览外，为方便用户离线查阅，本站也提供 <a href="/download">付费下载</a>（定价10元）。之所以考虑收费，是因为批量扫描这些文献并整理也是有一定成本的，还请理解并多多支持。本站数据会持续更新，而仅需一次付费，未来就可以随时重新下载到最新版本数据。</p>
+
+<p class="mt-3">你已经支付完成，非常感谢你的支持！点击下面的“下载”按钮，将获得全套最新数据的Excel文件。</p>
+
+<div>
+  <form method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">下载</button>
+  </form>
+</div>
+
+{% endblock %}

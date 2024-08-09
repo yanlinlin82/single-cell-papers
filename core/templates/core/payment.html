@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+{% block custom_style%}
+<style>
+  .custom-div {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    z-index: 1000;
+    width: 200px;
+  }
+</style>
+{% endblock %}
+
+<h1>单细胞与空转测序相关文章</h1>
+
+<p class="my-4">
+<a href="/">返回首页</a> | <a href="/logout">退出登录</a>
+</p>
+
+<p class="mt-3">除通过在线浏览外，为方便用户离线查阅，本站也提供 <a href="/download">付费下载</a>（定价10元）。之所以考虑收费，是因为批量扫描这些文献并整理也是有一定成本的，还请理解并多多支持。本站数据会持续更新，而仅需一次付费，未来就可以随时重新下载到最新版本数据。</p>
+
+<p>请使用微信扫码支付</p>
+<div class="border text-center col-6 offset-3 p-3">
+  <img id="qrcode" src="{% static "images/weixin-shoukuan.png" %}" alt="QR Code" style="max-width:300px;">
+  <div class="py-2" style="font-size:30px; color:red;">订单号：{{ order_number }}</div>
+  <div class="py-2" style="font-size:30px; color:red;">金额：10元</div>
+  <div class="py-2">注：因微信支付还在提交腾讯认证，暂时不能实现付款后自动下载，需要我手工处理，请在付款时<b>务必备注订单号</b>，我会尽快确认付款后，开通下载链接。开通后，重新刷新或打开本页面，将看到下载按钮。</div>
+  <div class="py-2">过程中若遇到任何问题，请联系微信：<a href="javascript:void(0);" id="toggleLink">yanlinlin82</a></div>
+</div>
+
+<div id="customDiv" class="custom-div">
+  <div class="text=center"><img src="{% static "images/qrcode.jpg" %}" class="img-fluid" alt="Sample Image"></div>
+</div>
+
+<script>
+  (async () => {
+    $('#toggleLink').click(function(e) {
+      e.preventDefault();
+      var offset = $(this).offset();
+      var top = offset.top + $(this).outerHeight();
+      var left = offset.left;
+      $('#customDiv').css({
+          top: top,
+          left: left
+      }).toggle();
+    });
+
+    console.log('Generating QR code...');
+    return;
+    var csrfToken = $('meta[name="csrf-token"]').attr('content');
+    data = {};
+    $.ajax({
+      url: '/wx_create_payment/',  // Django 后端生成二维码的接口
+      type: 'POST',
+      contentType: 'application/json',
+      headers: { 'X-CSRFToken': csrfToken },
+      data: JSON.stringify(data),
+      success: function(data) {
+        if (data.qr_image) {
+          // 将Base64图像数据设置为img标签的src
+          $('#qrcode').attr('src', 'data:image/png;base64,' + data.qr_image);
+        } else {
+          console.error('Failed to generate QR code');
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('Error occurred: ' + error);
+      }
+    });
+  })();
+</script>
+
+{% endblock %}

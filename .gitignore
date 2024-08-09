@@ -5,3 +5,4 @@ db.sqlite3*
 __pycache__/
 .vscode/
 static_root/
+cert/

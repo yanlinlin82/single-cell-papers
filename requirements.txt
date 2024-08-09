@@ -3,3 +3,7 @@ openai
 python-dotenv
 httpx[socks]
 django
+openpyxl
+requests
+cryptography
+qrcode[pil]

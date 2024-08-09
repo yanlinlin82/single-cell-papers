@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <title>{% block title %}单细胞与空转测序相关文章{% endblock %}</title>
   <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
   <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
