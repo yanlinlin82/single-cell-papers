@@ -64,6 +64,33 @@ def home(request):
 
     for index, paper in enumerate(papers):
         paper.index = index + papers.start_index()
+        if paper.parse_time is None:
+            paper.parse_time = paper.created
+        if paper.article_type is None or paper.article_type == '':
+            paper.article_type = 'NA'
+        if paper.description is None or paper.description == '':
+            paper.description = 'NA'
+        if paper.novelty is None or paper.novelty == '':
+            paper.novelty = 'NA'
+        if paper.limitation is None or paper.limitation == '':
+            paper.limitation = 'NA'
+        if paper.research_goal is None or paper.research_goal == '':
+            paper.research_goal = 'NA'
+        if paper.research_objects is None or paper.research_objects == '':
+            paper.research_objects = 'NA'
+        if paper.field_category is None or paper.field_category == '':
+            paper.field_category = 'NA'
+        if paper.disease_category is None or paper.disease_category == '':
+            paper.disease_category = 'NA'
+        if paper.technique is None or paper.technique == '':
+            paper.technique = 'NA'
+        if paper.model_type is None or paper.model_type == '':
+            paper.model_type = 'NA'
+        if paper.data_type is None or paper.data_type == '':
+            paper.data_type = 'NA'
+        if paper.sample_size is None or paper.sample_size == '':
+            paper.sample_size = 'NA'
+
     return render(request, 'core/home.html', {
         'query': query,
         'pub_year': pub_year,
