@@ -2,6 +2,10 @@
 
 一个持续更新的专有领域知识库，聚焦单细胞与空转测序，通过收集和整理最新科研文献提供信息。
 
+网址：<https://single-cell-papers.bioinfo-assist.com/>
+
+<img src="static/images/qrcode-website.png" style=“max-width:300px">
+
 ---
 
 ## 动机
