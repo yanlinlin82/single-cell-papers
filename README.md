@@ -4,7 +4,7 @@
 
 网址：<https://single-cell-papers.bioinfo-assist.com/>
 
-<img src="static/images/qrcode-website.png" style=“max-width:300px">
+![](static/images/qrcode-website.png)
 
 ---
 
