@@ -6,28 +6,25 @@ import random
 import string
 import requests
 import urllib
-import xml.etree.ElementTree as ET
+import base64
+import qrcode
+import json
+from io import BytesIO
 from collections import Counter
 from openpyxl import Workbook
+from Crypto.Cipher import AES
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography import x509
 from django.shortcuts import render, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import login, logout
 from django.contrib.auth.models import User
 from core.models import Paper, Payment
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.backends import default_backend
-from base64 import b64encode, b64decode
-import qrcode
-from io import BytesIO
-from django.http import JsonResponse, HttpResponseBadRequest
-import base64
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
-import json
 from mysite import settings
 
 def generate_order_id():
@@ -205,29 +202,13 @@ def all_papers_to_excel():
     wb.save(response)
     return response
 
-import time
-import base64
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.backends import default_backend
-
 def get_cert_serial_no(cert_path):
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.backends import default_backend
-    from cryptography import x509
-
     with open(cert_path, 'rb') as cert_file:
         cert_data = cert_file.read()
     cert = x509.load_pem_x509_certificate(cert_data, default_backend())
     serial_number = cert.serial_number
     cert_data = format(serial_number, 'x').upper()
-    print(f"Cert serial number: {cert_data}")
     return cert_data
-    # 从证书中读取序列号
-    with open(cert_path, 'rb') as cert_file:
-        cert_data = cert_file.read()
-    # 使用相关库提取序列号（这个过程可能需要依赖特定的库）
-    return cert_data # 'your_cert_serial_no_here'  # 例如 '444D6A1EFFFFFFFF'
 
 def generate_v3_headers(payload):
     apiclient_cert_file = os.path.join(settings.BASE_DIR, os.getenv('WEB_CERT_PATH'))
@@ -265,7 +246,6 @@ def generate_v3_headers(payload):
     return headers
 
 def wx_create_payment_order(order_number):
-    print("wx_create_payment_order")
     apiclient_cert_file = os.path.join(settings.BASE_DIR, os.getenv('WEB_CERT_PATH'))
     apiclient_key_file = os.path.join(settings.BASE_DIR, os.getenv('WEB_KEY_PATH'))
 
@@ -304,13 +284,11 @@ def wx_create_payment_order(order_number):
     # 解析响应
     response_data = response.json()
     qr_code_url = response_data.get("code_url")
-    print(f"QR code URL: {qr_code_url}")
     return qr_code_url
 
 def wx_create_payment(request):
     if request.method != 'POST':
         return HttpResponseBadRequest("Invalid request method")
-    print(request.body)
 
     payment = Payment.objects.get(user=request.user)
     if payment.has_paid:
@@ -344,12 +322,9 @@ def wx_create_payment(request):
         "qr_image": img_str,
     })
 
-from Crypto.Cipher import AES
-from base64 import b64decode
-
 def decrypt_wechat_ciphertext(api_key, associated_data, nonce, ciphertext):
     # Base64 decode the ciphertext
-    ciphertext = b64decode(ciphertext)
+    ciphertext = base64.b64decode(ciphertext)
     
     # Prepare the AES cipher
     cipher = AES.new(api_key.encode('utf-8'), AES.MODE_GCM, nonce=nonce.encode('utf-8'))
@@ -369,9 +344,8 @@ def decrypt_wechat_ciphertext(api_key, associated_data, nonce, ciphertext):
 
 @csrf_exempt
 def wx_payment_callback(request):
-    # 返回结果：
+    #print(f"wx_payment_callback: {request.body}")
     # b'{"id":"4b81d936-6358-5396-9875-571b7752c988","create_time":"2024-08-10T17:54:45+08:00","resource_type":"encrypt-resource","event_type":"TRANSACTION.SUCCESS","summary":"\\xe6\\x94\\xaf\\xe4\\xbb\\x98\\xe6\\x88\\x90\\xe5\\x8a\\x9f","resource":{"original_type":"transaction","algorithm":"AEAD_AES_256_GCM","ciphertext":"pbHMMxGHHVtsHbLvMvpPKVT4QVvPRJbnCAeunHoK5MFFMPReLcqVhBv4dqYUGH/AOOVAs94xHo9+8RYxFrnpqJ4eq+RU5wHNkLLeJnlk7q1jN5eDmsdKSyz5TYmvwYRdu7HakB/G9UInyORy272ZgqHvjDqv3gdDLB/c3FKDZWWopG7lZhO3oSPg4/tJpDvwkqkzppIcWmxT4xrGboH/Ydaoq3aSfCBOM75al7oFgR0y+v8o2x3Sys6e7F5NGrAXz+C6Xaf+JDcR7CDx1b3fmiaiQZgeKJYNagB7Fb1pLLzy/u6LVxBrqw3YkekB8I14fwvofCHBRV2qhNiSUHQGPdhHVrC8ZgIx8qZHtWDTYBwDlGEoUyIuxCGr0NxR2NrtQD5PYW0uCuN8e+AH8YKY7Nc+zoTtNT3NUU4Jb3jy3+DHtCTM6HaXhz+kT6IPCPhT08Zt2njM4iiOzP2nOjYYAZF08wso0HppIYdmY+JfwhtHBmmCtbmc+8Scj8x+UzBux8ZekE6oLSQDuxm4AZ6LRt3IlYjWugphE11WE+0gyqitnZbp/YSxx/VMNWFAoTrYjUO9othcxzdcbg==","associated_data":"transaction","nonce":"xTPC24lW00hr"}}'
-    print(f"wx_payment_callback: {request.body}")
     if request.method != 'POST':
         return HttpResponseBadRequest("Invalid request method")
 
@@ -389,7 +363,7 @@ def wx_payment_callback(request):
     nonce = data["resource"]["nonce"]
     ciphertext = data["resource"]["ciphertext"]
     decrypted_data = decrypt_wechat_ciphertext(api_key, associated_data, nonce, ciphertext)
-    print(f"Decrypted data: {decrypted_data}")
+    #print(f"Decrypted data: {decrypted_data}")
     # {"mchid":"1682946646","appid":"wx2dcbb93718ed5e89","out_trade_no":"17232-84577-5768","transaction_id":"4200002435202408107334579991","trade_type":"NATIVE","trade_state":"SUCCESS","trade_state_desc":"\xe6\x94\xaf\xe4\xbb\x98\xe6\x88\x90\xe5\x8a\x9f","bank_type":"CMB_CREDIT","attach":"","success_time":"2024-08-10T18:09:52+08:00","payer":{"openid":"oxXK76AX0YKBXr70dalc8SzODck8"},"amount":{"total":1000,"payer_total":1000,"currency":"CNY","payer_currency":"CNY"}}
 
     json_data = json.loads(decrypted_data)
