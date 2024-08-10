@@ -27,10 +27,10 @@
 
 <p>请使用微信扫码支付</p>
 <div class="border text-center col-6 offset-3 p-3">
-  <img id="qrcode" src="{% static "images/weixin-shoukuan.png" %}" alt="QR Code" style="max-width:300px;">
   <div class="py-2" style="font-size:30px; color:red;">订单号：{{ order_number }}</div>
   <div class="py-2" style="font-size:30px; color:red;">金额：10元</div>
-  <div class="py-2">注：因微信支付还在提交腾讯认证，暂时不能实现付款后自动下载，需要我手工处理，请在付款时<b>务必备注订单号</b>，我会尽快确认付款后，开通下载链接。开通后，重新刷新或打开本页面，将看到下载按钮。</div>
+  <img id="qrcode" src="" alt="QR Code" style="max-width:300px;">
+  <div><button class="btn btn-primary my-3" onclick="location.reload();">支付完成</button></div>
   <div class="py-2">过程中若遇到任何问题，请联系微信：<a href="javascript:void(0);" id="toggleLink">yanlinlin82</a></div>
 </div>
 
@@ -52,7 +52,6 @@
     });
 
     console.log('Generating QR code...');
-    return;
     var csrfToken = $('meta[name="csrf-token"]').attr('content');
     data = {};
     $.ajax({

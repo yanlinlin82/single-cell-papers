@@ -1,6 +1,7 @@
 import os
 import hashlib
 import time
+import datetime
 import random
 import string
 import requests
@@ -263,16 +264,17 @@ def generate_v3_headers(payload):
 
     return headers
 
-def wx_create_payment_order():
+def wx_create_payment_order(order_number):
+    print("wx_create_payment_order")
     apiclient_cert_file = os.path.join(settings.BASE_DIR, os.getenv('WEB_CERT_PATH'))
     apiclient_key_file = os.path.join(settings.BASE_DIR, os.getenv('WEB_KEY_PATH'))
 
     url = "https://api.mch.weixin.qq.com/v3/pay/transactions/native"
     payload = {
         "mchid": os.getenv('WEB_MERCHANT_ID'),
-        "appid": os.getenv('WEB_APP_ID'),
+        "appid": os.getenv('WEB_MERCHANT_APP_ID'),
         "description": '购买单细胞与空转测序相关文章可下载表格（Excel文件）',
-        "out_trade_no": generate_order_id(),
+        "out_trade_no": order_number,  # 商户订单号
         "notify_url": f"https://{os.getenv('WEB_DOMAIN')}/wx_payment_callback/",  # 微信支付成功后通知的URL
         "amount": {
             "total": 1000, # 订单金额，单位为分
@@ -310,13 +312,15 @@ def wx_create_payment(request):
         return HttpResponseBadRequest("Invalid request method")
     print(request.body)
 
-    # 模拟订单生成
-    out_trade_no = f"ORDER_{int(time.time())}"
-    total_fee = 1000  # 订单金额（单位为分）
-    description = "Test product"
+    payment = Payment.objects.get(user=request.user)
+    if payment.has_paid:
+        return JsonResponse({
+            "qr_image": None,
+            "message": "Payment already completed",
+        })
 
     # 发起微信支付请求并获取支付二维码的URL
-    qr_url = wx_create_payment_order()
+    qr_url = wx_create_payment_order(payment.order_number)
 
     # 生成二维码
     qr = qrcode.QRCode(
@@ -338,34 +342,77 @@ def wx_create_payment(request):
     # 返回二维码图像的Base64字符串
     return JsonResponse({
         "qr_image": img_str,
-        "out_trade_no": out_trade_no
     })
+
+from Crypto.Cipher import AES
+from base64 import b64decode
+
+def decrypt_wechat_ciphertext(api_key, associated_data, nonce, ciphertext):
+    # Base64 decode the ciphertext
+    ciphertext = b64decode(ciphertext)
+    
+    # Prepare the AES cipher
+    cipher = AES.new(api_key.encode('utf-8'), AES.MODE_GCM, nonce=nonce.encode('utf-8'))
+    cipher.update(associated_data.encode('utf-8'))
+
+    # Separate the encrypted data and the tag
+    encrypted_data = ciphertext[:-16]
+    tag = ciphertext[-16:]
+
+    # Decrypt and verify the data
+    try:
+        decrypted_data = cipher.decrypt_and_verify(encrypted_data, tag)
+        return decrypted_data.decode('utf-8')
+    except ValueError as e:
+        print("Incorrect decryption", e)
+        return None
 
 @csrf_exempt
 def wx_payment_callback(request):
+    # 返回结果：
+    # b'{"id":"4b81d936-6358-5396-9875-571b7752c988","create_time":"2024-08-10T17:54:45+08:00","resource_type":"encrypt-resource","event_type":"TRANSACTION.SUCCESS","summary":"\\xe6\\x94\\xaf\\xe4\\xbb\\x98\\xe6\\x88\\x90\\xe5\\x8a\\x9f","resource":{"original_type":"transaction","algorithm":"AEAD_AES_256_GCM","ciphertext":"pbHMMxGHHVtsHbLvMvpPKVT4QVvPRJbnCAeunHoK5MFFMPReLcqVhBv4dqYUGH/AOOVAs94xHo9+8RYxFrnpqJ4eq+RU5wHNkLLeJnlk7q1jN5eDmsdKSyz5TYmvwYRdu7HakB/G9UInyORy272ZgqHvjDqv3gdDLB/c3FKDZWWopG7lZhO3oSPg4/tJpDvwkqkzppIcWmxT4xrGboH/Ydaoq3aSfCBOM75al7oFgR0y+v8o2x3Sys6e7F5NGrAXz+C6Xaf+JDcR7CDx1b3fmiaiQZgeKJYNagB7Fb1pLLzy/u6LVxBrqw3YkekB8I14fwvofCHBRV2qhNiSUHQGPdhHVrC8ZgIx8qZHtWDTYBwDlGEoUyIuxCGr0NxR2NrtQD5PYW0uCuN8e+AH8YKY7Nc+zoTtNT3NUU4Jb3jy3+DHtCTM6HaXhz+kT6IPCPhT08Zt2njM4iiOzP2nOjYYAZF08wso0HppIYdmY+JfwhtHBmmCtbmc+8Scj8x+UzBux8ZekE6oLSQDuxm4AZ6LRt3IlYjWugphE11WE+0gyqitnZbp/YSxx/VMNWFAoTrYjUO9othcxzdcbg==","associated_data":"transaction","nonce":"xTPC24lW00hr"}}'
+    print(f"wx_payment_callback: {request.body}")
     if request.method != 'POST':
         return HttpResponseBadRequest("Invalid request method")
 
     data = json.loads(request.body)
     event_type = data.get('event_type')
 
-    # 检查订单状态
-    if event_type == "TRANSACTION.SUCCESS":
-        transaction_id = data["resource"]["ciphertext"]["transaction_id"]
-        out_trade_no = data["resource"]["ciphertext"]["out_trade_no"]
-
-        # 验证订单并更新状态（示例）
-        try:
-            payment = Payment.objects.get(out_trade_no=out_trade_no)
-            payment.status = "SUCCESS"
-            payment.transaction_id = transaction_id
-            payment.save()
-        except Payment.DoesNotExist:
-            return HttpResponse("Order not found", status=404)
-
-        return HttpResponse("Success", status=200)
-    else:
+    if event_type != "TRANSACTION.SUCCESS":
         return HttpResponse("Invalid event type", status=400)
+
+    if data.get('resource').get('algorithm') != "AEAD_AES_256_GCM":
+        return HttpResponse("Invalid algorithm", status=400)
+    
+    api_key = os.getenv('WEB_API_V3_KEY')
+    associated_data = data["resource"]["associated_data"]
+    nonce = data["resource"]["nonce"]
+    ciphertext = data["resource"]["ciphertext"]
+    decrypted_data = decrypt_wechat_ciphertext(api_key, associated_data, nonce, ciphertext)
+    print(f"Decrypted data: {decrypted_data}")
+    # {"mchid":"1682946646","appid":"wx2dcbb93718ed5e89","out_trade_no":"17232-84577-5768","transaction_id":"4200002435202408107334579991","trade_type":"NATIVE","trade_state":"SUCCESS","trade_state_desc":"\xe6\x94\xaf\xe4\xbb\x98\xe6\x88\x90\xe5\x8a\x9f","bank_type":"CMB_CREDIT","attach":"","success_time":"2024-08-10T18:09:52+08:00","payer":{"openid":"oxXK76AX0YKBXr70dalc8SzODck8"},"amount":{"total":1000,"payer_total":1000,"currency":"CNY","payer_currency":"CNY"}}
+
+    json_data = json.loads(decrypted_data)
+    if json_data.get('trade_state') != 'SUCCESS':
+        return HttpResponse("Invalid trade state", status=400)
+
+    mchid = json_data.get('mchid')
+    appid = json_data.get('appid')
+    if mchid != os.getenv('WEB_MERCHANT_ID') or appid != os.getenv('WEB_MERCHANT_APP_ID'):
+        return HttpResponse("Invalid merchant ID or app ID", status=400)
+
+    out_trade_no = json_data.get('out_trade_no')
+    payment_list = Payment.objects.filter(order_number=out_trade_no)
+    if payment_list.count() == 0:
+        return HttpResponse("Order not found", status=404)
+    payment = payment_list[0]
+    payment.has_paid = True
+    payment.paid_amount = json_data['amount']['total'] / 100
+    payment.payment_date = datetime.datetime.strptime(json_data['success_time'], "%Y-%m-%dT%H:%M:%S%z")
+    payment.payment_callback = json.dumps(json_data)
+    payment.save()
+
+    return HttpResponse("Success", status=200)
 
 def generate_state():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=16))
@@ -463,9 +510,8 @@ def download(request):
 
     payment = Payment.objects.get(user=user)
     if not payment.has_paid:
-        if payment.order_number is None:
-            payment.order_number = generate_order_id()
-            payment.save()
+        payment.order_number = generate_order_id()
+        payment.save()
         return render(request, 'core/payment.html', {
             'order_number': payment.order_number
         })

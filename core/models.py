@@ -38,7 +38,9 @@ class Payment(models.Model):
     openid = models.CharField(max_length=128, null=True, blank=True)
     order_number = models.CharField(max_length=64, unique=True, null=True, blank=True, default=None)
     has_paid = models.BooleanField(default=False)
+    paid_amount = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, default=None)
     payment_date = models.DateTimeField(null=True, blank=True)
+    payment_callback = models.TextField(null=True, blank=True, default=None)
 
     def __str__(self):
         return f"{self.user.username} - {'Paid' if self.has_paid else 'Not Paid'}"

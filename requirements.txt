@@ -7,3 +7,4 @@ openpyxl
 requests
 cryptography
 qrcode[pil]
+pycryptodome
