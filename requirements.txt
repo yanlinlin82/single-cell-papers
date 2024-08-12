@@ -8,3 +8,7 @@ requests
 cryptography
 qrcode[pil]
 pycryptodome
+pandas
+bottleneck
+numexpr
+numpy

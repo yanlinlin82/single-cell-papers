@@ -33,6 +33,16 @@ class Paper(models.Model):
     def __str__(self):
         return f"{self.pub_year} - {self.journal} - {self.title}"
 
+class Journal(models.Model):
+    name = models.CharField(max_length=512, unique=True)
+    abbreviation = models.CharField(max_length=32, unique=True)
+    impact_factor = models.DecimalField(max_digits=6, decimal_places=3, null=True, blank=True, default=None)
+    impact_factor_year = models.IntegerField(null=True, blank=True, default=None)
+    impact_factor_quartile = models.CharField(max_length=1, null=True, blank=True, default=None)
+
+    def __str__(self):
+        return f"{self.name} - {self.abbreviation}"
+
 class Payment(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     openid = models.CharField(max_length=128, null=True, blank=True)
