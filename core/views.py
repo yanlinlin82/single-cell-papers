@@ -65,6 +65,13 @@ def get_paginated_reviews(reviews, page_number):
 
     return reviews, zip(items, indices)
 
+def format_impact_factor(impact_factor):
+    if impact_factor is None:
+        return None
+    if impact_factor < 0.1:
+        return "<0.1"
+    return f"{impact_factor:.1f}"
+
 def home(request):
     papers = Paper.objects.all()
 
@@ -132,6 +139,7 @@ def home(request):
             paper.data_type = 'NA'
         if paper.sample_size is None or paper.sample_size == '':
             paper.sample_size = 'NA'
+        paper.journal_impact_factor = format_impact_factor(paper.journal_impact_factor)
 
     return render(request, 'core/home.html', {
         'query': query,
@@ -170,7 +178,7 @@ def all_papers_to_excel():
     ws = wb.active
     ws.title = "Papers"
     ws.append([
-        "标题", "杂志", "发表日期", "DOI", "PMID",
+        "标题", "杂志", "影响因子", "分区", "发表日期", "DOI", "PMID",
         "类型", "简述", "创新点", "不足", "研究目的", "研究对象",
         "领域", "病种", "技术", "模型", "数据类型", "样本量"
     ])
@@ -178,6 +186,8 @@ def all_papers_to_excel():
         ws.append([
             papers.title,
             papers.journal,
+            format_impact_factor(papers.journal_impact_factor),
+            "Q" + papers.journal_impact_factor_quartile,
             papers.pub_date,
             papers.doi,
             papers.pmid,
@@ -492,8 +502,7 @@ def download(request):
 
     if request.method == 'POST':
         if request.POST.get('csrfmiddlewaretoken'):
-            if payment.has_paid:
-                return all_papers_to_excel()
+            return all_papers_to_excel()
 
     return render(request, 'core/download.html')
 

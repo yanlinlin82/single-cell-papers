@@ -7,6 +7,29 @@
   min-width: 100px;
   background-color: #f9f9f9;
 }
+.journal-if, .journal-q1, .journal-q2, .journal-q3, .journal-q4 {
+  margin: 0px;
+  padding: 2px 4px;
+  color: white;
+  font-size: 0.8rem;
+  border: 0px;
+  white-space: nowrap;
+}
+.journal-if {
+  background-color: rgb(0, 113, 203); # 蓝色
+}
+.journal-q1 {
+  background-color: rgb(234, 51, 32); # 红色
+}
+.journal-q2 {
+  background-color: rgb(242, 196, 64); # 黄色
+}
+.journal-q3 {
+  background-color: rgb(71, 173, 92); # 绿色
+}
+.journal-q4 {
+  background-color: rgb(54, 110, 186); # 蓝色
+}
 </style>
 {% endblock %}
 
@@ -62,7 +85,12 @@
       <td><a title="{{ paper.parse_time | date:"Y-m-d H:i:s" }} {{ paper.source }}">{{ paper.parse_time | date:"Y-m-d" }}</a></td>
       <td>
         <div>{{ paper.title }}</div>
-        <div class="mt-2">{{ paper.pub_date }}, {{ paper.journal }}</div>
+        <div class="mt-2">
+          {{ paper.pub_date }}, {{ paper.journal }}
+          {% if paper.journal_impact_factor and paper.journal_impact_factor_quartile %}
+          <span class="journal-if">IF:{{ paper.journal_impact_factor }}</span><span class="journal-q{{ paper.journal_impact_factor_quartile }}">Q{{ paper.journal_impact_factor_quartile }}</span>
+          {% endif %}
+        </div>
         <div class="mt-2">
           {% if paper.doi %}DOI:<a href="https://doi.org/{{ paper.doi }}" target="_blank" class="external-link">{{ paper.doi }}</a>{% endif %}
           {% if paper.pmid %}PMID:<a href="https://pubmed.ncbi.nlm.nih.gov/{{ paper.pmid }}" target="_blank" class="external-link">{{ paper.pmid }}</a>{% endif %}
