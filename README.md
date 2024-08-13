@@ -25,7 +25,7 @@
     ```sh
     python -m venv .venv
     . .venv/bin/activate
-    pip install -r requirements.txt
+    pip install -U -r requirements.txt
     ```
 
 3. 配置环境参数
