@@ -13,8 +13,34 @@ sys.path.append('.')
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
 django.setup()
 
-from core.models import Paper
+from core.models import Journal, Paper
 from core.paper import parse_date
+
+def match_journal(name):
+    journal = Journal.objects.filter(name__iexact=name).first()
+    if not journal:
+        journal = Journal.objects.filter(abbreviation__iexact=name).first()
+    return journal
+
+def update_journal_info(paper):
+    journal_name = paper.journal.strip()
+    journal_name = re.sub(r'\s+', ' ', journal_name)
+    if not journal_name:
+        return
+
+    journal = match_journal(journal_name)
+    if not journal:
+        journal_name_2 = re.sub(r'\s+:\s+.*$', '', journal_name)
+        journal = match_journal(journal_name_2)
+        if not journal:
+            journal_name_3 = re.sub(r'the journal of', 'journal of', journal_name, flags=re.IGNORECASE)
+            journal = match_journal(journal_name_3)
+
+    if journal:
+        paper.journal_abbreviation = journal.abbreviation
+        paper.journal_impact_factor = journal.impact_factor
+        paper.journal_impact_factor_quartile = journal.impact_factor_quartile
+
 
 class PubmedArticle:
     def __init__(self, xml_node):
@@ -416,7 +442,9 @@ def process_single(xml_source_id, article, output_dir):
         any_updated = True
     if paper.journal != data['journal']:
         paper.journal = data['journal']
+        update_journal_info(paper)
         any_updated = True
+
     if paper.pub_date != data['pub_date']:
         paper.pub_date = data['pub_date']
         any_updated = True
