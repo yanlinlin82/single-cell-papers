@@ -30,6 +30,14 @@
 .journal-q4 {
   background-color: rgb(54, 110, 186); # 蓝色
 }
+#filter_quantile_content, #filter_impact_factor_content, #filter_pub_date_content {
+  display: none;
+  position: absolute;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  z-index: 1000;
+}
 </style>
 {% endblock %}
 
@@ -45,12 +53,152 @@
 
 {% include "core/includes/search.html" %}
 
-{% if pub_year %}
 <div class="my-3 text-start">
-  当前筛选条件：发表年份为 {{ pub_year }} 年 {% if pub_month %}{{ pub_month }} 月 {% endif %}
+  当前筛选条件：
+
+  <script>
+    function updateQueryString(key, value) {
+      var url = new URL(window.location.href);
+      if (value) {
+        url.searchParams.set(key, value);
+      } else {
+        url.searchParams.delete(key);
+      }
+      window.location.href = url.toString();
+    };
+  </script>
+
+  {% if filter_quantile %}
+    [<a href="javascript:;" id="filter_quantile">分区Q{{ filter_quantile }}及以上</a>]
+  {% else %}
+    [<a href="javascript:;" id="filter_quantile">分区不过滤</a>]
+  {% endif %}
+  <div id="filter_quantile_content" class="mt-2">
+    <div><a href="javascript:;" onclick="updateQueryString('fq', '1')">分区Q1及以上</a></div>
+    <div><a href="javascript:;" onclick="updateQueryString('fq', '2')">分区Q2及以上</a></div>
+    <div><a href="javascript:;" onclick="updateQueryString('fq', '3')">分区Q3及以上</a></div>
+    <div><a href="javascript:;" onclick="updateQueryString('fq', '')">分区不过滤</a></div>
+  </div>
+  <script>
+    (() => {
+      $('#filter_quantile').click(() => {
+        var offset = $('#filter_quantile').offset();
+        var top = offset.top + $('#filter_quantile').outerHeight();
+        var left = offset.left;
+        $('#filter_quantile_content').css({
+            top: top,
+            left: left
+        }).toggle();
+      });
+      $(document).click(function(e) {
+        if (!$(e.target).closest('#filter_quantile').length &&
+            !$(e.target).closest('#filter_quantile_content').length) {
+          $('#filter_quantile_content').hide();
+        }
+      });
+    })();
+  </script>
+
+  {% if impact_factor_min or impact_factor_max %}
+    {% if impact_factor_min and impact_factor_max %}
+      [<a href="javascript:;" id="filter_impact_factor">IF：{{ impact_factor_min }} - {{ impact_factor_max }}</a>]
+    {% else %}
+      {% if impact_factor_min %}
+        [<a href="javascript:;" id="filter_impact_factor">IF：{{ impact_factor_min }}及以上</a>]
+      {% else %}
+        [<a href="javascript:;" id="filter_impact_factor">IF：{{ impact_factor_max }}及以下</a>]
+      {% endif %}
+    {% endif %}
+  {% else %}
+    [<a href="javascript:;" id="filter_impact_factor">IF不过滤</a>]
+  {% endif %}
+  <div id="filter_impact_factor_content" class="mt-2">
+    <input type="text" placeholder="最小值" id="impact_factor_min" value="{{ impact_factor_min }}" style="width:80px">
+    -
+    <input type="text" placeholder="最大值" id="impact_factor_max" value="{{ impact_factor_max }}" style="width:80px">
+    <div><a href="javascript:;" id="set_filter_impact_factor">设置过滤</a></div>
+    <div><a href="/">不过滤</a></div>
+  </div>
+  <script>
+    (() => {
+      $('#filter_impact_factor').click(() => {
+        var offset = $('#filter_impact_factor').offset();
+        var top = offset.top + $('#filter_impact_factor').outerHeight();
+        var left = offset.left;
+        $('#filter_impact_factor_content').css({
+            top: top,
+            left: left
+        }).toggle();
+      });
+
+      $(document).click(function(e) {
+        if (!$(e.target).closest('#filter_impact_factor').length &&
+            !$(e.target).closest('#filter_impact_factor_content').length) {
+          $('#filter_impact_factor_content').hide();
+        }
+      });
+
+      $('#set_filter_impact_factor').click(() => {
+        var impact_factor_min = $('#impact_factor_min').val();
+        var impact_factor_max = $('#impact_factor_max').val();
+        if (impact_factor_min || impact_factor_max) {
+          updateQueryString('fi', `${impact_factor_min}-${impact_factor_max}`);
+        }
+      });
+    })();
+  </script>
+
+  {% if pub_date_start or pub_date_end %}
+    {% if pub_date_start and pub_date_end %}
+      [<a href="javascript:;" id="filter_pub_date">发表日期：{{ pub_date_start }}-{{ pub_date_end }}</a>]
+    {% else %}
+      {% if pub_date_start %}
+        [<a href="javascript:;" id="filter_pub_date">发表日期：{{ pub_date_start }}及以后</a>]
+      {% else %}
+        [<a href="javascript:;" id="filter_pub_date">发表日期：{{ pub_date_end }}及以前</a>]
+      {% endif %}
+    {% endif %}
+  {% else %}
+    [<a href="javascript:;" id="filter_pub_date">发表日期不过滤</a>]
+  {% endif %}
+  <div id="filter_pub_date_content" class="mt-2">
+    <input type="text" placeholder="YYYYMM" id="pub_date_start" value="{{ pub_date_start }}" style="width:80px">
+    -
+    <input type="text" placeholder="YYYYMM" id="pub_date_end" value="{{ pub_date_end }}" style="width:80px">
+    <div><a href="javascript:;" id="set_filter_pub_date">设置过滤</a></div>
+    <div><a href="/">不过滤</a></div>
+  </div>
+  <script>
+    (() => {
+      $('#filter_pub_date').click(() => {
+        var offset = $('#filter_pub_date').offset();
+        var top = offset.top + $('#filter_pub_date').outerHeight();
+        var left = offset.left;
+        $('#filter_pub_date_content').css({
+            top: top,
+            left: left
+        }).toggle();
+      });
+
+      $(document).click(function(e) {
+        if (!$(e.target).closest('#filter_pub_date').length &&
+            !$(e.target).closest('#filter_pub_date_content').length) {
+          $('#filter_pub_date_content').hide();
+        }
+      });
+
+      $('#set_filter_pub_date').click(() => {
+        var pub_date_start = $('#pub_date_start').val();
+        var pub_date_end = $('#pub_date_end').val();
+        if (pub_date_start || pub_date_end) {
+          updateQueryString('fd', `${pub_date_start}-${pub_date_end}`);
+        }
+      });
+    })();
+  </script>
+
   [<a href="/">清除筛选条件</a>]
 </div>
-{% endif %}
 
 <div class="my-3 text-start">
   当前共找到 {{ papers.paginator.count }} 篇文献{% if papers.paginator.num_pages > 1 %}，本页显示第 {{ papers.start_index }} - {{ papers.end_index }} 篇{% endif %}。

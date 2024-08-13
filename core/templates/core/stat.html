@@ -27,7 +27,7 @@
         {% for month_data in year_data.months %}
         <td class="text-center">
           {% if month_data.count > 0 %}
-          <a href="/?pub_year={{ year_data.year }}&pub_month={{ month_data.month }}">
+          <a href="/?fd={{ year_data.year }}{{ month_data.month }}-{{ year_data.year }}{{ month_data.month }}">
             {{ month_data.count }}
           </a>
           {% else %}
@@ -36,7 +36,7 @@
         </td>
         {% endfor %}
         <td class="text-center">
-          <a href="/?pub_year={{ year_data.year }}">{{ year_data.total }}</a>
+          <a href="/?fd={{ year_data.year }}01-{{ year_data.year }}12">{{ year_data.total }}</a>
         </td>
       </tr>
       {% endfor %}
