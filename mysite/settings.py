@@ -28,7 +28,7 @@ if os.path.exists(env_file):
 SECRET_KEY = 'django-insecure-onep5@r39_e*wsmz)8j#t8aq_fuxkaa3b_lk-g=fh+2knuociv'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv(DJANGO_DEBUG, False) == True
+DEBUG = os.getenv('DJANGO_DEBUG', False) == True
 
 ALLOWED_HOSTS = [ 'localhost', '127.0.0.1', '[::1]', 'single-cell-papers.bioinfo-assist.com' ]
 
