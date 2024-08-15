@@ -2,7 +2,7 @@ import re
 
 def tokenize(query):
     # 正则表达式用于识别引号中的字符串、括号、逻辑运算符和普通单词
-    token_pattern = r'\"[^\"]+\"|\(|\)|AND|OR|NOT|\S+'
+    token_pattern = r'\"[^\"]+\"|\(|\)|AND|OR|NOT|[^()\s]+'
     tokens = re.findall(token_pattern, query)
     return tokens
 
