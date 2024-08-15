@@ -79,6 +79,55 @@ def to_number(s):
     except ValueError:
         return ''
 
+from core.query import tokenize, parse
+
+def build_query(parsed_query):
+    if not parsed_query:
+        return Q()
+
+    query = Q()
+    current_operator = None
+
+    for token in parsed_query:
+        if isinstance(token, list):
+            # 递归处理嵌套表达式
+            subquery = build_query(token)
+            if current_operator == 'AND' or current_operator is None:
+                query &= subquery
+            elif current_operator == 'OR':
+                query |= subquery
+        elif token in {'AND', 'OR', 'NOT'}:
+            current_operator = token
+        else:
+            # 构建单个字段查询的Q对象
+            q_obj = (
+                Q(title__icontains=token) |
+                Q(journal__icontains=token) |
+                Q(doi=token) |
+                Q(pmid=token) |
+                Q(article_type__icontains=token) |
+                Q(description__icontains=token) |
+                Q(novelty__icontains=token) |
+                Q(limitation__icontains=token) |
+                Q(research_goal__icontains=token) |
+                Q(research_objects__icontains=token) |
+                Q(field_category__icontains=token) |
+                Q(disease_category__icontains=token) |
+                Q(technique__icontains=token) |
+                Q(model_type__icontains=token) |
+                Q(data_type__icontains=token) |
+                Q(sample_size__icontains=token)
+            )
+            if current_operator == 'NOT':
+                q_obj = ~q_obj
+
+            if current_operator == 'AND' or current_operator is None:
+                query &= q_obj
+            elif current_operator == 'OR':
+                query |= q_obj
+
+    return query
+
 def home(request):
     papers = Paper.objects.all()
 
@@ -124,7 +173,6 @@ def home(request):
     if pub_date_start is not None and pub_date_end is not None:
         if pub_date_start > pub_date_end:
             pub_date_start, pub_date_end = pub_date_end, pub_date_start
-    print(f"pub_date_start: {pub_date_start}, pub_date_end: {pub_date_end}")
     if pub_date_start is not None:
         papers = papers.filter(pub_date_dt__gte=pub_date_start)
     if pub_date_end is not None:
@@ -132,23 +180,10 @@ def home(request):
 
     query = request.GET.get('q') or ''
     if query:
-        papers = Paper.objects.filter(
-            Q(title__icontains=query) |
-            Q(journal__icontains=query) |
-            Q(doi = query) |
-            Q(pmid = query) |
-            Q(article_type__icontains=query) |
-            Q(description__icontains=query) |
-            Q(novelty__icontains=query) |
-            Q(limitation__icontains=query) |
-            Q(research_goal__icontains=query) |
-            Q(research_objects__icontains=query) |
-            Q(field_category__icontains=query) |
-            Q(disease_category__icontains=query) |
-            Q(technique__icontains=query) |
-            Q(model_type__icontains=query) |
-            Q(data_type__icontains=query) |
-            Q(sample_size__icontains=query))
+        tokens = tokenize(query)
+        parsed_query = parse(tokens)
+        q_obj = build_query(parsed_query)
+        papers = Paper.objects.filter(q_obj)
 
     papers = papers.order_by('-source', '-pub_date_dt')
 
