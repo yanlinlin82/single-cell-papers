@@ -183,7 +183,7 @@ def home(request):
         tokens = tokenize(query)
         parsed_query = parse(tokens)
         q_obj = build_query(parsed_query)
-        papers = Paper.objects.filter(q_obj)
+        papers = papers.filter(q_obj)
 
     papers = papers.order_by('-source', '-pub_date_dt')
 
