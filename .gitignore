@@ -6,3 +6,4 @@ __pycache__/
 .vscode/
 static_root/
 cert/
+pubmed
