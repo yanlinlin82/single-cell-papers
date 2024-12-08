@@ -30,4 +30,5 @@ echo ">>> Got source: $SOURCE"
 mkdir -pv log/pubmed
 .venv/bin/python scripts/scan-pubmed.py $PUBMED_XML_GZ >>log/pubmed/${SOURCE}.log 2>&1
 
+tail -n1 log/pubmed/${SOURCE}.log
 echo ">>> Updating for $APP_NAME done"
