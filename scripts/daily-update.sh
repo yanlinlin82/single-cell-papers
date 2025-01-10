@@ -24,7 +24,6 @@ fi
 echo ">>> Latest PubMed XML file: $PUBMED_XML_GZ"
 
 SOURCE=$(basename $PUBMED_XML_GZ .xml.gz)
-SOURCE=${SOURCE#pubmed24n}
 echo ">>> Got source: $SOURCE"
 
 mkdir -pv log/pubmed
