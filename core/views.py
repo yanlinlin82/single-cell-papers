@@ -269,11 +269,14 @@ def all_papers_to_excel():
         "领域", "病种", "技术", "模型", "数据类型", "样本量"
     ])
     for papers in Paper.objects.all():
+        quartile_info = '-'
+        if papers.journal_impact_factor_quartile:
+            quartile_info = 'Q' + papers.journal_impact_factor_quartile
         ws.append([
             papers.title,
             papers.journal,
             format_impact_factor(papers.journal_impact_factor),
-            "Q" + papers.journal_impact_factor_quartile,
+            quartile_info,
             papers.pub_date,
             papers.doi,
             papers.pmid,
