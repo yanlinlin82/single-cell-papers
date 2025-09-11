@@ -7,3 +7,4 @@ __pycache__/
 static_root/
 cert/
 pubmed
+secret_key.txt
