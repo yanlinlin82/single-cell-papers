@@ -15,6 +15,7 @@ if [ -e "${BAK_FILE}" ]; then
 	exit 0
 fi
 cp -av db.sqlite3 ${BAK_FILE}
+find -name 'db.sqlite3.bak-*' -mtime +7 -exec rm -fv {} \;
 
 PUBMED_XML_GZ=$(find pubmed/updatefiles/ -type f -name '*.xml.gz' | sort | tail -n1)
 if [ -z "${PUBMED_XML_GZ}" ]; then
